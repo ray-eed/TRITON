@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>ASTRA — Mission Health Intelligence System</title>
+<style>
+:root{--bg:#060a13;--p:rgba(18,28,48,.6);--ln:rgba(130,170,230,.16);--tx:#e7eef9;--mu:#8496b3;--g:#3ddc97;--y:#f5d547;--o:#ff9f43;--r:#ff4d5e;--cy:#4cc9f0;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;margin:0}
+body{min-height:100%;background:radial-gradient(1200px 600px at 70% -10%,#12234a66,transparent),var(--bg);color:var(--tx);font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+h1{font-size:22px;font-weight:600;letter-spacing:.02em;margin-bottom:16px}h3{font-size:16px;font-weight:600}h2{font-size:20px;margin:6px 0 8px}
+.mu{color:var(--mu)}p{margin:4px 0}
+.lbl{font:600 10.5px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--mu)}
+.card{background:var(--p);border:1px solid var(--ln);border-radius:14px;padding:16px;backdrop-filter:blur(10px);margin-bottom:14px}
+.st{border-color:color-mix(in srgb,var(--c) 50%,transparent);box-shadow:0 0 26px -12px var(--c)}
+.clk{cursor:pointer;transition:transform .2s}.clk:hover{transform:translateY(-2px)}
+.g2,.g3,.g4,.g6{display:grid;gap:14px;margin-bottom:14px}.g2>.card,.g3>.card,.g4>.card,.g6>.card{margin:0}
+.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g6{grid-template-columns:repeat(6,1fr)}
+@media(max-width:1000px){.g3,.g4{grid-template-columns:repeat(2,1fr)}.g6{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:1fr}}
+@media(max-width:560px){.g3,.g4{grid-template-columns:1fr}}
+.shell{display:flex;min-height:100vh}
+nav{width:236px;flex:none;border-right:1px solid var(--ln);padding:18px 12px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{cursor:pointer;margin:0 8px 16px}.sys{margin:22px 8px 0;display:grid;gap:6px}
+.ni{display:flex;gap:10px;align-items:center;width:100%;text-align:left;background:none;border:1px solid transparent;color:var(--mu);padding:10px 12px;border-radius:10px;cursor:pointer;font:inherit;margin-top:4px;white-space:nowrap}
+.ni.on{color:var(--tx);background:rgba(76,201,240,.1);border-color:rgba(76,201,240,.3)}
+.alertdot{margin-left:auto;width:8px;height:8px;border-radius:50%;background:var(--r);box-shadow:0 0 8px var(--r)}
+main{flex:1;padding:18px 22px 100px;min-width:0}
+@media(max-width:760px){.shell{flex-direction:column}nav{width:100%;height:auto;position:static;display:flex;overflow-x:auto;gap:6px;border:0;border-bottom:1px solid var(--ln);padding:10px}.brand,.sys{display:none}.ni{width:auto;margin:0}main{padding:14px 14px 110px}}
+.top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+.seg{display:flex;border:1px solid var(--ln);border-radius:9px;overflow:hidden}.seg button{background:none;border:0;color:var(--mu);padding:8px 12px;font:600 12px ui-monospace,monospace;cursor:pointer}.seg .on{background:rgba(76,201,240,.15);color:var(--tx)}
+.pill{display:inline-flex;align-items:center;gap:6px;font:600 11px ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--c);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);padding:3px 9px;border-radius:99px}
+.pill i,.ev i{width:8px;height:8px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c);flex:none}
+.btn{background:rgba(76,201,240,.1);border:1px solid rgba(76,201,240,.4);color:var(--tx);padding:9px 14px;border-radius:9px;font:600 12px ui-monospace,monospace;letter-spacing:.06em;cursor:pointer}.btn:hover{background:rgba(76,201,240,.24)}.btn.r{background:rgba(255,77,94,.15);border-color:var(--r)}.btn.r:hover{background:rgba(255,77,94,.3)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.big{font-size:34px;font-weight:700;letter-spacing:.06em;margin:6px 0}
+.m{border-top:2px solid var(--c)}.m b{font-size:22px;display:block;margin-top:4px}.m small{color:var(--mu);font-weight:400;font-size:12px}
+.ch{width:100%;height:80px;display:block;margin-top:8px}
+.tl{margin:10px 0 0 6px;border-left:1px solid var(--ln)}.ev{display:flex;gap:12px;align-items:center;padding:7px 0;flex-wrap:wrap}.ev i{margin-left:-4.5px}.ev time{font:12px ui-monospace,monospace;color:var(--mu);width:62px;flex:none}
+.al{display:flex;gap:10px;align-items:center;border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 10%,transparent);padding:9px 12px;border-radius:8px;margin-bottom:8px}.al b{font:700 10px ui-monospace,monospace;letter-spacing:.12em;color:var(--c)}
+.row{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--ln)}
+.bar{height:6px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden;margin:4px 0 10px}.bar i{display:block;height:100%;background:var(--c,var(--o))}
+.rb{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chip{padding:5px 10px;border-radius:7px;border:1px solid var(--ln);font:600 10.5px ui-monospace,monospace;color:var(--mu);transition:.3s}.chip.on{color:var(--tx);border-color:var(--c);background:color-mix(in srgb,var(--c) 16%,transparent)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}.fact{border:1px solid var(--ln);border-radius:10px;padding:10px}.fact b{display:block;font-size:15px}
+.sub{border:1px solid var(--ln);border-radius:10px;padding:10px 12px;margin-top:8px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.flow{display:flex;flex-direction:column;align-items:center;gap:6px;margin:12px 0;text-align:center}.flow .n{padding:8px 14px;border:1px solid var(--c);border-radius:9px;background:color-mix(in srgb,var(--c) 10%,transparent)}.flow .ar{color:var(--mu)}
+@keyframes pu{50%{box-shadow:0 0 46px -4px var(--r)}}.pulse{animation:pu 1.6s infinite}
+.demo{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;background:rgba(10,18,34,.94);border:1px solid var(--cy);border-radius:12px;padding:12px 16px;backdrop-filter:blur(10px)}
+.hero{min-height:100vh;display:grid;place-items:center;text-align:center;position:relative;overflow:hidden;padding:24px;background:radial-gradient(1px 1px at 20% 30%,#fff9,transparent),radial-gradient(1px 1px at 70% 20%,#fff7,transparent),radial-gradient(1.5px 1.5px at 40% 80%,#fff8,transparent),radial-gradient(1px 1px at 85% 65%,#fff7,transparent),radial-gradient(1px 1px at 10% 75%,#fff6,transparent),radial-gradient(1px 1px at 55% 45%,#fff5,transparent)}
+.orb{position:absolute;inset:0;margin:auto;width:min(92vw,760px);height:min(92vw,760px);opacity:.55;animation:sp 70s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.hb{font-size:clamp(52px,11vw,104px);letter-spacing:.3em;font-weight:300;margin:6px 0 10px;padding-left:.3em}
+@media(prefers-reduced-motion:reduce){.orb,.pulse{animation:none}}
+</style></head><body><div id="app"></div><script>
+const K={crit:'var(--r)',mon:'var(--y)',ok:'var(--g)',warn:'var(--o)',info:'var(--cy)'};
+const S={v:'hero',s:'overview',t:0,em:6,ack:0,proto:0,nav:0,d:-1,open:{}};let tm,dm;
+const $=q=>document.querySelector(q),pad=n=>String(n).padStart(2,'0');
+const clk=()=>{const m=840+S.t;return pad(m/60|0)+':'+pad(m%60)},co2=()=>(0.8+S.t*0.002).toFixed(2);
+const pill=(s,t)=>`<span class=pill style="--c:${K[s]}"><i></i>${t}</span>`;
+const alrt=(s,t)=>`<div class=al style="--c:${K[s]}"><b>${{info:'INFO',mon:'MONITOR',warn:'WARNING',crit:'CRITICAL'}[s]}</b><span>${t}</span></div>`;
+const mt=([l,v,u,s])=>`<div class="card m" style="--c:${K[s||'info']}"><div class=lbl>${l}</div><b>${v}<small> ${u||''}</small></b></div>`;
+const tl=a=>`<div class=tl>${a.map(([t,x,s])=>`<div class=ev style="--c:${K[s]}"><i></i><time>${t}</time><span>${x}</span></div>`).join('')}</div>`;
+const ch=(d,c,bar)=>{const W=300,H=80,mx=Math.max(...d)*1.08,mn=bar?0:Math.min(...d)*.92,n=d.length,y=v=>H-(v-mn)/(mx-mn)*(H-8)-3;
+ if(bar)return `<svg viewBox="0 0 ${W} ${H}" class=ch preserveAspectRatio=none>${d.map((v,i)=>`<rect x="${i*W/n+5}" y="${y(v)}" width="${W/n-10}" height="${H-y(v)}" rx=3 fill="${c}" opacity=".75"/>`).join('')}</svg>`;
+ const p=d.map((v,i)=>`${i?'L':'M'}${(i*W/(n-1)).toFixed(1)} ${y(v).toFixed(1)}`).join('');
+ return `<svg viewBox="0 0 ${W} ${H}" class=ch preserveAspectRatio=none><path d="${p}L${W} ${H}L0 ${H}Z" fill="${c}" opacity=".12"/><path d="${p}" fill=none stroke="${c}" stroke-width=2 vector-effect=non-scaling-stroke /></svg>`};
+const cc=(t,d,c,bar)=>`<div class=card><div class=lbl>${t}</div>${ch(d,c,bar)}</div>`;
+const A=[
+{id:'maya',n:'Maya Chen',r:'Mission Specialist',s:'crit',l:'Critical',d:[['Heart Rate','121 BPM'],['Movement','Very Low'],['Status','Possible incapacitation']]},
+{id:'alex',n:'Alex Rahman',r:'Commander',s:'ok',l:'Stable',d:[['Heart Rate','78 BPM'],['Recovery','81%']]},
+{id:'sarah',n:'Sarah Collins',r:'Flight Engineer',s:'mon',l:'Monitor',d:[['Symptom','Headache reported'],['Recovery','68%']]},
+{id:'daniel',n:'Daniel Kim',r:'Mission Specialist',s:'ok',l:'Stable',d:[['Heart Rate','76 BPM'],['Recovery','79%']]}];
+const RC={maya:64,alex:81,sarah:68,daniel:79};
+const Q=[['Heart Rate','94','BPM','mon'],['Sleep','5h 42m','','warn'],['Recovery','64','%','warn'],['Hydration','72','%','mon'],['Activity','68','min','ok'],['Stress','Moderate','','mon']];
+const H=[['Heart Rate','94 BPM'],['Resting Heart Rate','81 BPM'],['Blood Oxygen','97%'],['Sleep','5h 42m'],['Hydration','72%'],['Activity','68 min'],['Stress','Moderate'],['Recovery','64%'],['Temperature','36.8°C']];
+const TL=[['08:00','Poor sleep detected','mon'],['10:30','Mission workload increased','mon'],['12:15','Resting HR elevated','warn'],['12:40','CO₂ increased','warn'],['12:52','Multiple crew symptoms reported','warn'],['13:00','ASTRA correlation alert generated','info']];
+const I=[
+['Recovery Declining','info','MODERATE','Recovery has decreased 18% over the last 3 days.','Reduced sleep duration · Increased mission workload · Reduced recovery time','Protect the recovery window and reassess workload before high-demand activity.','Sleep (5h 42m) and workload have both moved away from Maya’s personal baseline while recovery scores fell in step.'],
+['Elevated Resting Heart Rate','warn','MODERATE','Resting heart rate is approximately 11% above Maya’s recent baseline. This is an observed deviation, not a medical diagnosis.','Sleep deficit + workload','Reassessment suggested after the next sleep period.','Resting HR of 81 BPM compares with a recent baseline near 73 BPM; the shift tracks the sleep deficit.'],
+['Environmental Correlation','mon','POSSIBLE CORRELATION','An increase in spacecraft CO₂ occurred during the same period that multiple crew members reported headaches.','Timing overlap only — causation is not established.','Requires human review: verify air-quality sensors and check ventilation.','CO₂ moved from 0.6% to 0.8% at 12:40; three headache reports followed between 12:52 and 12:56.']];
+const SD=[['09:00','Research Operations'],['11:00','Equipment Maintenance'],['13:00','Systems Check'],['16:00','EVA Preparation'],['18:00','EVA'],['22:30','Recovery'],['23:30','Sleep']];
+const ES=[['14:32:10','Heart rate abnormality detected','warn'],['14:32:20','Movement significantly reduced','warn'],['14:32:40','No expected movement detected','crit'],['14:32:50','No response to interaction prompt','crit'],['14:32:55','🚨 CREW ALERT TRIGGERED','crit'],['14:33:00','Daniel Kim identified as nearest available responder','info']];
+const D=[
+['overview',0,'Normal mission. Maya’s recovery is already trending below her baseline.'],
+['health',0,'Recovery has stayed below Maya’s personal baseline for 3 days — sleep deficit and workload.'],
+['mission',0,'Mission workload increases and an EVA is approaching.'],
+['environment',0,'CO₂ begins increasing: 0.6% → 0.8%.'],
+['crew',0,'Sarah, Daniel and Maya report headaches within four minutes.'],
+['insights',0,'ASTRA flags a possible correlation — requires human review. No causation is claimed.'],
+['emergency',1,'14:32 — Maya’s heart rate rises to 121 BPM. Anomaly detected.'],
+['emergency',3,'Her movement drops sharply. Status changes to CRITICAL.'],
+['emergency',4,'No response to the interaction prompt. Maya may be unresponsive.'],
+['emergency',5,'ASTRA triggers a crew alert. Human assistance may be required.'],
+['emergency',6,'Daniel Kim is identified as the nearest available responder.'],
+['emergency',6,'Daniel begins the response protocol and navigates to Maya.',1]];
+const N=[['overview','Mission Overview','◈'],['health','My Health','♡'],['insights','Insights','✦'],['mission','Mission','◷'],['crew','Crew','⚉'],['emergency','Emergency','⚠'],['environment','Environment','☁']];
+
+const map=()=>`<div class=card><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px"><div class=lbl>Response navigation</div><button class=btn onclick="S.nav=0;render()">← BACK</button></div>
+<svg viewBox="0 0 700 260" style="width:100%;margin-top:10px">
+${[[30,90,150,80,'HAB MODULE'],[220,90,130,80,'LAB'],[390,100,90,60,'EVA AIRLOCK']].map(([x,y,w,h,t])=>`<rect x=${x} y=${y} width=${w} height=${h} rx=10 fill="rgba(76,201,240,.06)" stroke="var(--cy)" stroke-opacity=".5"/><text x=${x+w/2} y=${y+h/2+4} text-anchor=middle fill="#9fb3d1" font-size=11 font-family=monospace>${t}</text>`).join('')}
+<circle cx=590 cy=130 r=70 fill="rgba(255,77,94,.06)" stroke="var(--r)" stroke-dasharray="4 5"/><text x=590 y=225 text-anchor=middle fill="#ff8a96" font-size=11 font-family=monospace>EVA ZONE B</text>
+<path d="M105 130 H285 H435 H560" fill=none stroke="var(--cy)" stroke-width=2 stroke-dasharray="6 6"><animate attributeName=stroke-dashoffset from=24 to=0 dur=1s repeatCount=indefinite /></path>
+<circle cx=590 cy=130 r=8 fill="var(--r)"/><text x=590 y=112 text-anchor=middle fill="#fff" font-size=12>Maya</text>
+<circle r=7 fill="var(--g)"><animateMotion dur=8s repeatCount=indefinite path="M105 130 H560"/></circle><text x=105 y=190 text-anchor=middle fill="#fff" font-size=12>Daniel</text></svg>
+<div class=chips><span class="chip on" style="--c:var(--g)">Daniel</span><span class=chip>→ EVA AIRLOCK</span><span class=chip>→ EVA ZONE B</span><span class="chip on" style="--c:var(--r)">→ Maya</span><span class="chip on" style="--c:var(--cy)">≈ 84 m · ETA 2 min 10 s</span></div></div>`;
+
+const SC={
+overview:()=>`<h1>Mission Overview</h1>
+<div class="card st" style="--c:var(--y)"><div class=lbl>Overall mission health</div><div class=big style="color:var(--y)">🟡 MONITOR</div><p>Crew health currently stable with one active critical event requiring attention.</p><br><button class="btn r" onclick="go('emergency')">VIEW CRITICAL EVENT</button></div>
+<div class=g4>${A.map(a=>`<div class="card st clk" style="--c:${K[a.s]}" onclick="go('${a.s=='crit'?'emergency':'crew'}')"><div class=lbl>${a.r}</div><h3 style="margin:4px 0 10px">${a.n}</h3>${pill(a.s,a.l)}</div>`).join('')}</div>
+<div class=g6>${Q.map(mt).join('')}</div>
+${alrt('warn','Recovery has remained below baseline for 3 days.')}${alrt('crit','Critical anomaly detected — crew assistance may be required.')}
+<div class=card><div class=lbl>Mission timeline</div>${tl([...TL,...(S.t?[[clk(),'Mission state advanced — reassessment logged','info']]:[])])}</div>`,
+
+health:()=>`<h1>My Health — Maya Chen</h1>
+<div class="card st" style="--c:var(--o)"><div class=lbl>Overall</div><div class=big style="color:var(--o)">🟠 ATTENTION</div><p class=mu>Wellness indicators for situational awareness — not medically diagnostic.</p></div>
+<div class=g3>${H.map(mt).join('')}</div>
+<div class=g2>${cc('Heart rate — last 24 hours',[68,66,64,62,61,60,62,66,72,78,80,76,74,79,84,88,82,86,90,92,88,94,96,94],'var(--r)')}${cc('Sleep — 7 days (hours)',[7.1,6.8,6.5,6.2,6,5.9,5.7],'var(--cy)',1)}${cc('Recovery — 7 days (%)',[80,79,78,82,74,69,64],'var(--o)')}${cc('Activity — 7 days (min)',[92,88,101,75,80,72,68],'var(--g)',1)}</div>
+<div class="card st" style="--c:var(--o)"><div class=lbl>Recovery balance</div><div class=rb><svg viewBox="0 0 120 120" width=130><circle cx=60 cy=60 r=52 fill=none stroke="rgba(255,255,255,.08)" stroke-width=10 /><circle cx=60 cy=60 r=52 fill=none stroke="var(--o)" stroke-width=10 stroke-linecap=round stroke-dasharray="209 327" transform="rotate(-90 60 60)"/><text x=60 y=68 text-anchor=middle fill="#fff" font-size=26 font-weight=700>64%</text></svg>
+<div style="flex:1;min-width:220px">${[['Sleep deficit',18],['Workload',22],['Reduced recovery time',14]].map(([l,v])=>`<div>${l} <b style="float:right">${v}%</b></div><div class=bar><i style="width:${v*3}%"></i></div>`).join('')}</div></div>
+<p>Recovery has remained below your personal baseline for 3 consecutive days.</p></div>`,
+
+insights:()=>`<h1>Health Insights</h1><p class=mu style="margin-bottom:14px">ASTRA explains changes instead of only showing measurements. Observed data, possible factors and recommendations are kept separate.</p>
+${I.map((x,i)=>`<div class="card st" style="--c:${K[x[1]]}"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><h3>${x[0]}</h3>${pill(x[1],(i<2?'Confidence: ':'')+x[2])}</div>
+<div class=lbl style="margin-top:12px">Observed data</div><p>${x[3]}</p><div class=lbl style="margin-top:10px">Possible contributing factors</div><p>${x[4]}</p><div class=lbl style="margin-top:10px">Recommended action</div><p>${x[5]}</p>
+${S.open[i]?`<div class=al style="--c:var(--cy);margin-top:10px"><b>REASONING</b><span>${x[6]}</span></div>`:''}<br><button class=btn onclick="tog(${i})">${S.open[i]?'HIDE':'VIEW'} REASONING</button></div>`).join('')}`,
+
+mission:()=>{const now=840+S.t,left=1080-now,ev=left>0?`EVA IN ${left/60|0}H ${pad(left%60)}M`:'EVA UNDERWAY';
+return `<h1>Mission Context</h1><div class=g2><div class=card><div class=lbl>Daily schedule</div><div class=tl>${SD.map(([t,x])=>{const[h,m]=t.split(':'),mn=h*60+ +m,hi=/EVA/.test(x);return `<div class=ev style="--c:${hi?K.warn:mn<=now?K.ok:K.info};${mn<=now?'opacity:.6':''}"><i></i><time>${t}</time><span>${x}</span>${hi?pill('warn','High demand'):''}</div>`}).join('')}</div></div>
+<div class="card st" style="--c:var(--o)"><div class=lbl>Upcoming</div><div class=big style="color:var(--o);font-size:28px">${ev}</div>
+<div class=row><span class=mu>Recovery</span><b>Below baseline</b></div><div class=row><span class=mu>Fatigue</span><b>Elevated</b></div>
+<br>${alrt('warn','Upcoming high-demand activity detected.')}<p><b>Recommended action:</b> Consider recovery period and reassessment before high-demand activity.</p><p class=mu>Health data is interpreted in the context of what the astronaut is about to do.</p></div></div>`},
+
+crew:()=>`<h1>Crew Health Monitor</h1>
+<div class=g4>${A.map(a=>`<div class="card st ${a.s=='crit'?'pulse':''}" style="--c:${K[a.s]}"><div class=lbl>${a.r}</div><h3 style="margin:4px 0 8px">${a.n}</h3>${pill(a.s,a.l)}<div style="margin-top:10px">${a.d.map(([l,v])=>`<div class=row><span class=mu>${l}</span><b>${v}</b></div>`).join('')}</div></div>`).join('')}</div>
+<div class=g2><div class=card><div class=lbl>Crew recovery overview</div>${A.map(a=>`<div style="margin-top:10px">${a.n} <b style="float:right">${RC[a.id]}%</b></div><div class=bar style="--c:${K[a.s]}"><i style="width:${RC[a.id]}%"></i></div>`).join('')}</div>
+<div class="card st" style="--c:var(--y)"><div class=lbl>Shared event detection</div>
+${tl([['12:40','CO₂ rises from 0.6% to 0.8%','warn'],['12:52','Sarah reports headache','mon'],['12:54','Daniel reports headache','mon'],['12:56','Maya reports headache','mon'],['13:00','ASTRA detects a possible shared environmental correlation','info']])}
+<div class=flow><div class=n style="--c:var(--cy)">CO₂ Increase</div><span class=ar>↓</span><div class=n style="--c:var(--y)">Possible Environmental Correlation</div><span class=ar>↓</span><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">${['Sarah','Daniel','Maya'].map(x=>`<div class=n style="--c:var(--o)">${x} → Headache</div>`).join('')}</div></div>
+<p>Multiple crew symptoms occurred during the same environmental change.</p><br>${pill('mon','Requires human review')}</div></div>`,
+
+emergency:()=>{const e=S.em,on=e>=3;
+const chips=[['Normal',0,'ok'],['Anomaly',1,'warn'],['Critical',3,'crit'],['Unresponsive',4,'crit'],['Crew alert',5,'crit'],['Responder ID',6,'info']].map(([l,t,s])=>`<span class="chip ${e>=t?'on':''}" style="--c:${K[s]}">${l}</span>`).join('')+`<span class="chip ${S.proto?'on':''}" style="--c:var(--cy)">Protocol</span>`;
+return `<h1>Emergency Response</h1>
+<div class=btns style="margin-bottom:14px;align-items:center"><button class="btn r" onclick=sim()>▶ SIMULATE EMERGENCY</button><div class=chips>${chips}</div></div>
+${S.nav?map():''}
+<div class="card st ${on&&!S.ack?'pulse':''}" style="--c:${on?K.crit:K.mon}"><div class=lbl>${on?'Emergency alert':'Monitoring'}</div><h2>MAYA CHEN — POSSIBLE INCAPACITATION</h2>${pill(on?'crit':'mon',on?'🔴 Critical':'Attention')} ${S.ack?pill('ok','Acknowledged'):''}
+<p style="margin-top:8px">Critical physiological anomaly and loss of expected activity detected. Human assistance may be required.</p><p class=mu>ASTRA is alerting the crew — it is not diagnosing Maya.</p>
+<div class=facts><div class=fact><span class=lbl>Last known location</span><b>EVA ZONE B</b></div><div class=fact><span class=lbl>Last movement</span><b>${e>=3?'42 seconds ago':'—'}</b></div><div class=fact><span class=lbl>Heart rate</span><b>121 BPM</b></div><div class=fact><span class=lbl>Suit status</span><b style="color:var(--g)">ONLINE</b></div><div class=fact><span class=lbl>Communication</span><b style="color:${e>=4?K.crit:K.mon}">${e>=4?'NO RESPONSE':'MONITORING'}</b></div></div>
+<div class=btns><button class=btn onclick=ack()>ACKNOWLEDGE ALERT</button><button class=btn onclick=navTo()>NAVIGATE TO MAYA</button><button class=btn onclick="go('health')">VIEW MAYA STATUS</button><button class="btn r" onclick=protoGo()>START RESPONSE PROTOCOL</button></div></div>
+<div class=g2><div class=card><div class=lbl>Alert sequence</div>${e?tl(ES.slice(0,e)):'<p class=mu style="margin-top:8px">All readings within expected range.</p>'}</div>
+<div class=card><div class=lbl>Crew response panel</div>${e>=5?[['Alex Rahman','AVAILABLE','ok'],['Sarah Collins','MONITORING','mon'],['Daniel Kim','AVAILABLE — NEAREST CREW MEMBER','info']].map(([n,s,k])=>`<div class="sub ${k=='info'&&e>=6?'st':''}" style="--c:${K[k]}"><b>${n}</b>${pill(k,s)}</div>`).join('')+(S.proto?'<br>'+alrt('info','Response protocol active — Daniel Kim en route via EVA Airlock to EVA Zone B.'):''):'<p class=mu style="margin-top:8px">Crew alert not yet triggered.</p>'}</div></div>`},
+
+environment:()=>`<h1>Environment</h1>
+<div class=g4>${[['CO₂',co2(),'%','mon'],['Temperature','22.4','°C'],['Humidity','44','%'],['Pressure','101.2','kPa'],['Radiation','0.32','mSv'],['Air Quality','MONITOR','','mon'],['Noise','47','dB']].map(mt).join('')}</div>
+<div class=g2>${cc('CO₂ — last 12 readings (%)',[.6,.6,.61,.6,.6,.6,.62,.68,.74,.8,.8,+co2()],'var(--y)')}${cc('Temperature — last 12 readings (°C)',[22.1,22.1,22.2,22.2,22.3,22.3,22.3,22.4,22.4,22.4,22.4,22.4],'var(--cy)')}</div>
+<div class=g2><div class=card><div class=lbl>Environmental events</div>${tl([['12:40','CO₂ increase, 0.6% → 0.8%','warn'],['12:52','Headache reports begin (3 crew)','mon'],['13:00','ASTRA flags possible correlation','info']])}</div>
+<div class=card>${alrt('mon','Possible shared crew/environment correlation.')}<p>CO₂ rose during the same window in which three crew members reported headaches. Timing overlap only — causation is not established.</p><br>${pill('mon','Requires human review')}</div></div>`};
+
+const hero=()=>`<div class=hero><div class=orb><svg viewBox="0 0 400 400"><circle cx=200 cy=200 r=60 fill="rgba(76,201,240,.12)" stroke="var(--cy)" stroke-opacity=".4"/><ellipse cx=200 cy=200 rx=170 ry=70 fill=none stroke="rgba(130,170,230,.35)" transform="rotate(-20 200 200)"/><circle cx=200 cy=200 r=120 fill=none stroke="rgba(130,170,230,.25)" stroke-dasharray="2 6"/><g transform="rotate(-20 200 200)"><circle cx=370 cy=200 r=5 fill="var(--cy)"/></g></svg></div>
+<div style="position:relative;max-width:680px"><div class=lbl>Mission Health Intelligence</div><h1 class=hb>ASTRA</h1><p style="font-size:22px;margin:0 0 12px">From health monitoring to mission-aware action.</p>
+<p class=mu>ASTRA combines astronaut health, crew status, spacecraft environment, and mission context to help crews understand emerging situations and respond when assistance is needed.</p><br>
+<div class=btns style="justify-content:center"><button class=btn onclick=enter()>ENTER MISSION CONTROL</button><button class="btn r" onclick=startDemo()>RUN DEMO</button></div>
+<p class=mu style="margin-top:28px;font-size:12px">Decision-support and situational-awareness prototype · Mock data only · Not a diagnostic tool</p></div></div>`;
+const demoBar=()=>`<div class=demo><div><div class=lbl>Demo ${S.d+1}/${D.length}</div>${D[S.d][2]}</div><div class=btns><button class=btn onclick=nextD()>NEXT</button><button class=btn onclick=stopD()>EXIT</button></div></div>`;
+
+function render(){const a=$('#app');
+ if(S.v=='hero'){a.innerHTML=hero();return}
+ a.innerHTML=`<div class=shell><nav><div class=brand onclick="S.v='hero';render()"><div style="font-size:22px;letter-spacing:.3em;font-weight:300">ASTRA</div><div class=lbl>Mission Health Intelligence</div></div>
+ ${N.map(([k,l,ic])=>`<button class="ni ${S.s==k?'on':''}" onclick="go('${k}')"><span>${ic}</span>${l}${k=='emergency'?'<i class=alertdot></i>':''}</button>`).join('')}
+ <div class=sys><div class=lbl>MISSION DAY 143</div><div class=mu>ISS / Deep Space Mission Simulation</div>${pill('ok','ASTRA SYSTEMS ONLINE')}</div></nav>
+ <main><div class=top><span class=lbl>Mission Day 143 · Clock ${clk()}</span><div class=seg><button class="${S.s=='crew'?'':'on'}" onclick="go('health')">Individual</button><button class="${S.s=='crew'?'on':''}" onclick="go('crew')">Crew</button></div><span style="margin-left:auto"></span><button class=btn onclick=adv()>ADVANCE 10 MIN</button><button class=btn onclick=startDemo()>ENTER DEMO MODE</button></div>${SC[S.s]()}</main></div>${S.d>=0?demoBar():''}`}
+function go(s){S.s=s;S.nav=0;scrollTo(0,0);render()}
+function enter(){S.v='app';render()}
+function sim(){clearInterval(tm);S.em=0;S.ack=0;S.proto=0;S.nav=0;render();tm=setInterval(()=>{if(S.em>=6)return clearInterval(tm);S.em++;render()},1300)}
+function ack(){S.ack=1;render()}function navTo(){S.nav=1;render()}function protoGo(){S.proto=1;S.nav=1;render()}
+function tog(i){S.open[i]=!S.open[i];render()}function adv(){S.t+=10;render()}
+function startDemo(){S.v='app';S.t=0;S.d=0;clearInterval(dm);dm=setInterval(nextD,5000);applyD()}
+function nextD(){if(S.d>=D.length-1)return stopD();S.d++;applyD()}
+function stopD(){clearInterval(dm);S.d=-1;render()}
+function applyD(){const x=D[S.d];S.s=x[0];S.em=x[1];S.proto=S.nav=x[3]?1:0;S.ack=0;scrollTo(0,0);render()}
+render();
+</script></body></html>
