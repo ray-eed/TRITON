@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TRITON — Mission Health Intelligence</title>
+<style>
+:root {
+  --bg: #060a13;
+  --p: rgba(18,28,48,.6);
+  --ln: rgba(130,170,230,.16);
+  --tx: #e7eef9;
+  --mu: #9db0cc;
+  --g: #3ddc97;
+  --y: #f5d547;
+  --o: #ff9f43;
+  --r: #ff4d5e;
+  --cy: #4cc9f0;
+  box-sizing: border-box;
+}
+html { height: 100%; }
+*, *::before, *::after { box-sizing: inherit; margin: 0; }
+body {
+  min-height: 100%;
+  background: radial-gradient(1200px 600px at 70% -10%, rgba(18,35,74,0.4), transparent), var(--bg);
+  color: var(--tx);
+  font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+body::after { 
+  content:''; position:fixed; inset:0; 
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.012) 3px, rgba(0,0,0,0.012) 6px); 
+  pointer-events:none; z-index:100; 
+}
+h1 { font-size: 22px; font-weight: 600; letter-spacing: .02em; margin-bottom: 16px; }
+h3 { font-size: 16px; font-weight: 600; }
+h2 { font-size: 20px; margin: 6px 0 8px; }
+.mu { color: var(--mu); }
+p { margin: 4px 0; line-height: 1.6; }
+.lbl { font: 600 12px ui-monospace, Menlo, monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--mu); }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+.card { background: var(--p); border: 1px solid var(--ln); border-radius: 8px; padding: 18px; backdrop-filter: blur(10px); margin-bottom: 14px; }
+.st { border-color: color-mix(in srgb, var(--c) 50%, transparent); box-shadow: 0 0 28px -10px var(--c); }
+.clk { cursor: pointer; transition: transform .2s, box-shadow .2s; }
+.clk:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+.inp { display:block; width:100%; margin-top:4px; background:rgba(0,0,0,.3); border:1px solid var(--ln); color:var(--tx); padding:8px 10px; border-radius:6px; font:inherit; }
+label { display:block; font-size:12px; color:var(--mu); }
+/* Emergency animations */
+@keyframes pu { 0%,100%{box-shadow:0 0 20px -8px var(--r)} 50%{box-shadow:0 0 56px -2px var(--r),0 0 90px -20px rgba(255,77,94,0.4)} }
+@keyframes critFlash { 0%,100%{border-color:rgba(255,77,94,0.4)} 50%{border-color:rgba(255,77,94,0.95)} }
+@keyframes critBg { 0%,100%{background:rgba(255,77,94,0.05)} 50%{background:rgba(255,77,94,0.12)} }
+@keyframes aSlide { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadein { from{opacity:0} to{opacity:1} }
+@keyframes sp { to{transform:rotate(360deg)} }
+.pulse { animation: pu 1.8s ease-in-out infinite; }
+.crit-anim { animation: critFlash 1.8s ease-in-out infinite, critBg 1.8s ease-in-out infinite; }
+.anim-fade { animation: fadein 0.3s ease; }
+.anim-slide { animation: aSlide 0.35s ease both; }
+.g2, .g3, .g4, .g6 { display: grid; gap: 14px; margin-bottom: 14px; }
+.g2>.card, .g3>.card, .g4>.card, .g6>.card { margin: 0; }
+.g2 { grid-template-columns: repeat(2,1fr); }
+.g3 { grid-template-columns: repeat(3,1fr); }
+.g4 { grid-template-columns: repeat(4,1fr); }
+.g6 { grid-template-columns: repeat(6,1fr); }
+@media(max-width:1000px) { .g3, .g4 { grid-template-columns: repeat(2,1fr); } .g6 { grid-template-columns: repeat(3,1fr); } .g2 { grid-template-columns: 1fr; } }
+@media(max-width:560px) { .g3, .g4 { grid-template-columns: 1fr; } }
+.shell { display: flex; min-height: 100vh; }
+nav { width: 236px; flex: none; border-right: 1px solid var(--ln); padding: 18px 12px; position: sticky; top: 0; height: 100vh; overflow: auto; display: flex; flex-direction: column; }
+.brand { cursor: pointer; margin: 0 8px 16px; font-weight: bold; font-size: 18px; letter-spacing: 0.1em; color: var(--tx); }
+.brand span { color: var(--cy); }
+.sys { margin: 22px 8px 0; display: grid; gap: 6px; }
+.ni { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; background: none; border: 1px solid transparent; color: var(--mu); padding: 10px 12px; border-radius: 10px; cursor: pointer; font: inherit; margin-top: 4px; white-space: nowrap; }
+.ni.on { color: var(--tx); background: rgba(76,201,240,.1); border-color: rgba(76,201,240,.3); }
+.ni:hover:not(.on) { background: rgba(255,255,255,0.05); }
+.alertdot { margin-left: auto; width: 8px; height: 8px; border-radius: 50%; background: var(--r); box-shadow: 0 0 8px var(--r); }
+main { flex: 1; padding: 18px 22px 100px; min-width: 0; }
+@media(max-width:760px) { .shell { flex-direction: column; } nav { width: 100%; height: auto; position: static; display: flex; flex-wrap: wrap; gap: 6px; border: 0; border-bottom: 1px solid var(--ln); padding: 10px; } .brand { display: none; } .sys { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; width: 100%; } .navfoot { width: 100%; margin: 6px 0 0 !important; padding-top: 8px !important; border-top: 1px solid var(--ln) !important; } .ni { width: auto; margin: 0; } main { padding: 14px 14px 110px; } }
+.top { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 18px; }
+.top-left { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.top-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font: 600 12px ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); padding: 3px 9px; border-radius: 4px; }
+.pill i, .ev i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); flex: none; }
+.btn { background: rgba(76,201,240,.1); border: 1px solid rgba(76,201,240,.4); color: var(--tx); padding: 9px 14px; border-radius: 6px; font: 600 12px ui-monospace, monospace; letter-spacing: .06em; cursor: pointer; transition: 0.2s; }
+.btn:hover { background: rgba(76,201,240,.24); }
+.btn.r { background: rgba(255,77,94,.15); border-color: var(--r); color: var(--r); }
+.btn.r:hover { background: rgba(255,77,94,.3); }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;}
+.big { font-size: 34px; font-weight: 700; letter-spacing: .06em; margin: 6px 0; }
+.m { border-top: 2px solid var(--c); padding-top: 10px; min-height: 80px; display: flex; flex-direction: column; justify-content: space-between; } 
+.m b { font-size: 24px; display: block; margin-top: 4px; letter-spacing: .02em; } 
+.m small { color: var(--mu); font-weight: 400; font-size: 12px; }
+.ch { width: 100%; display: block; margin-top: 8px; }
+.tl { margin: 10px 0 0 6px; border-left: 1px solid var(--ln); } 
+.ev { display: flex; gap: 12px; align-items: center; padding: 7px 0; flex-wrap: wrap; }
+.ev[onclick] { cursor: pointer; } 
+.ev i { margin-left: -4.5px; } 
+.ev time { font: 12px ui-monospace, monospace; color: var(--mu); width: 62px; flex: none; }
+.al { display: flex; gap: 10px; align-items: center; border-left: 3px solid var(--c); background: color-mix(in srgb, var(--c) 10%, transparent); padding: 9px 12px; border-radius: 6px; margin-bottom: 8px; } 
+.al b { font: 700 12px ui-monospace, monospace; letter-spacing: .12em; color: var(--c); }
+.row { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--ln); align-items: center; }
+.row:last-child { border-bottom: none; }
+.bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden; margin: 4px 0 10px; } .bar i { display: block; height: 100%; background: var(--c, var(--o)); }
+.rb { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; } .chip { padding: 5px 10px; border-radius: 4px; border: 1px solid var(--ln); font: 600 12px ui-monospace, monospace; color: var(--mu); transition: .3s; } .chip.on { color: var(--tx); border-color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0; } .fact { border: 1px solid var(--ln); border-radius: 6px; padding: 10px; } .fact b { display: block; font-size: 15px; }
+.sub { border: 1px solid var(--ln); border-radius: 6px; padding: 10px 12px; margin-top: 8px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: center; }
+.flow { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 12px 0; text-align: center; } 
+.flow .n { padding: 8px 14px; border-radius: 6px; border-left: 4px solid var(--c); background: color-mix(in srgb, var(--c) 10%, transparent); text-align: left; min-width: 140px; } 
+.flow .ar { color: var(--mu); }
+.demo { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 99; display: flex; flex-direction: column; gap: 12px; background: rgba(10,18,34,.94); border: 1px solid var(--cy); border-radius: 12px; padding: 12px 16px; backdrop-filter: blur(10px); }
+.demo-content { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+.hero { min-height: 100vh; display: grid; place-items: center; text-align: center; position: relative; overflow: hidden; padding: 24px;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(76,201,240,0.08), transparent),
+    radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 70% 20%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 40% 80%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 85% 65%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1px 1px at 10% 75%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1px 1px at 55% 45%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 30% 55%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 75% 80%, rgba(255,255,255,0.3), transparent),
+    radial-gradient(1px 1px at 90% 35%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1px 1px at 5% 50%, rgba(255,255,255,0.3), transparent),
+    var(--bg);
+}
+.orb { position: absolute; inset: 0; margin: auto; width: min(92vw, 800px); height: min(92vw, 800px); opacity: .6; animation: sp 70s linear infinite; pointer-events: none; }
+.hb { font-size: clamp(58px, 12vw, 112px); letter-spacing: .35em; font-weight: 300; margin: 8px 0 12px; padding-left: .35em; color: var(--tx); text-shadow: 0 0 80px rgba(76,201,240,0.3); }
+.disclaimer { font-size: 12px; color: var(--mu); margin-top: 16px; font-style: italic; }
+.insight-card { background: color-mix(in srgb, var(--p) 80%, transparent); }
+.insight-card table { width: 100%; border-collapse: collapse; margin: 10px 0; font-family: ui-monospace, monospace; font-size: 13px; }
+.insight-card th, .insight-card td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--ln); }
+.insight-card th { color: var(--mu); font-weight: normal; }
+.insight-ev { margin-top: 12px; background: rgba(0,0,0,0.25); border-radius: 8px; border: 1px solid var(--ln); overflow: hidden; }
+.insight-ev-title { background: rgba(255,255,255,0.05); padding: 8px 12px; font-size: 12px; font-weight: bold; border-bottom: 1px solid var(--ln); display: flex; align-items: center; gap: 8px; letter-spacing:.08em; }
+.insight-ev-content { padding: 12px; font-size: 13px; line-height: 1.8; }
+.insight-ev-content div { margin: 2px 0; }
+@media(prefers-reduced-motion: reduce) { .orb, .pulse, .crit-anim, .anim-fade, .anim-slide { animation: none; } .clk, .queue-item, .btn, .chip { transition: none; } .clk:hover, .queue-item:hover { transform: none; } }
+.nav-map { background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; border: 1px solid var(--ln); margin: 14px 0; }
+.queue-item { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; border: 1px solid var(--ln); border-left: 4px solid var(--c); border-radius: 10px; margin-bottom: 8px; background: rgba(0,0,0,0.15); cursor: pointer; transition: background 0.2s, transform 0.2s; }
+.queue-item:hover { background: rgba(255,255,255,0.05); transform: translateX(2px); }
+.sect-label { font: 600 12px ui-monospace,monospace; letter-spacing:.16em; text-transform:uppercase; color:var(--mu); margin: 22px 0 10px; display:flex; align-items:center; gap:8px; }
+.sect-label::after { content:''; flex:1; height:1px; background:var(--ln); }
+.stt { display:inline-block; margin-top:2px; font: 600 12px ui-monospace, Menlo, monospace; letter-spacing:.04em; color:var(--c); }
+.demo-banner { display:flex; gap:10px; align-items:center; flex-wrap:wrap; border:1px dashed var(--o); background:rgba(255,159,67,.08); border-radius:6px; padding:8px 12px; margin-bottom:14px; font-size:13px; }
+.demo-banner b { font: 700 12px ui-monospace, Menlo, monospace; letter-spacing:.12em; color:var(--o); }
+button:focus-visible, [tabindex]:focus-visible, .inp:focus-visible { outline: 2px solid var(--cy); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// === CONSTANTS ===
+const K = { crit: 'var(--r)', mon: 'var(--y)', ok: 'var(--g)', warn: 'var(--o)', info: 'var(--cy)', cy: 'var(--cy)' };
+const ALERT_LABELS = {info:'INFO',mon:'MONITOR',warn:'WARNING',crit:'CRITICAL',ok:'NOMINAL'};
+
+// Single source of truth for values shown on several pages
+const EVA_LOC = 'Lab Module, Sector B';
+const RESP_DIST = 14;      // metres, nearest responder to Maya
+const MAYA_CRIT_HR = 121;  // BPM at the critical event
+
+const CREW = [
+  {id:'maya', n:'Maya Chen', r:'Mission Specialist', s:'crit', l:'Critical', hr:MAYA_CRIT_HR, get recovery() { return MISSION.health.recovery.current; }, movement:'Very Low', comm:'No Response', loc:EVA_LOC, suit:'Online', get extra() { return [['Heart Rate',`${MAYA_CRIT_HR} BPM`],['Recovery',`${MISSION.health.recovery.current}%`],['Movement','Very Low'],['Communication','No Response'],['Location',EVA_LOC]]; }},
+  {id:'alex', n:'Alex Rahman', r:'Commander', s:'ok', l:'Stable', hr:78, recovery:81, movement:'Normal', comm:'Active', loc:'Lab Module', extra:[['Heart Rate','78 BPM'],['Recovery','81%'],['Movement','Normal']]},
+  {id:'sarah', n:'Sarah Collins', r:'Flight Engineer', s:'mon', l:'Monitor', hr:84, recovery:68, movement:'Normal', comm:'Active', loc:'Hab Module', extra:[['Heart Rate','84 BPM'],['Symptom','Headache reported'],['Recovery','68%']]},
+  {id:'daniel', n:'Daniel Kim', r:'Mission Specialist', s:'ok', l:'Available', hr:76, recovery:79, movement:'Normal', comm:'Active', loc:'Lab Module', extra:[['Heart Rate','76 BPM'],['Recovery','79%'],['Distance to Maya',`${RESP_DIST} m`]]}
+];
+
+// === CENTRAL MOCK MISSION STATE (spec §17): one source for Maya's values across pages ===
+const MISSION = {
+  mission: { day: 143, evaWindowMin: 240, crewCount: 4, location: EVA_LOC },
+  health: {
+    restingHR: { preflight: 71, recent: 73, current: 81 },
+    recovery: { weekStart: 80, current: 64 },
+    sleep: { preflightH: 7.4, last7: [7.1,6.8,6.5,6.2,6.0,5.9,5.7] },
+    reaction: { preflightMs: 412, currentMs: 478 }
+  },
+  behavior: {
+    sleepPct: -18, activityPct: -12, moodPct: -21, workloadPct: 17, stressPct: 24, socialPct: -13,
+    sleepIrregularity: 'High', workloadTolerance: 'Reduced', isolation: 'Rising', workPattern: 'Changed', moodTrend: 'Declining'
+  },
+  mentalHealth: {
+    latestState: 'Irritated', stressDays: 3, lowMoodCheckins: 3,
+    motivation: 'Low', isolation: 'Moderate', sleepQuality: 'Poor',
+    checkins: ['Good','Neutral','Neutral','Low','Stressed','Stressed','Irritated']
+  },
+  cognitive: { attention: { pre: 92, current: 81 }, memory: { pre: 88, current: 84 } },
+  medical: { labsMeasuredDaysAgo: 12 }
+};
+const pctChange = (from, to) => Math.round((to - from) / from * 100);
+const derived = {
+  rhrDevRecent: pctChange(MISSION.health.restingHR.recent, MISSION.health.restingHR.current),
+  reactionDev: pctChange(MISSION.health.reaction.preflightMs, MISSION.health.reaction.currentMs),
+  recoveryDecline: Math.round((1 - MISSION.health.recovery.current / MISSION.health.recovery.weekStart) * 100),
+  sleepAvgH: MISSION.health.sleep.last7.reduce((a, b) => a + b, 0) / 7,
+  attentionDev: pctChange(MISSION.cognitive.attention.pre, MISSION.cognitive.attention.current),
+  memoryDev: pctChange(MISSION.cognitive.memory.pre, MISSION.cognitive.memory.current)
+};
+
+derived.sleepDevPct = pctChange(MISSION.health.sleep.preflightH, derived.sleepAvgH);
+// Keep the behavioral-review sleep figure on the same computation as every other page.
+MISSION.behavior.sleepPct = derived.sleepDevPct;
+
+// === ANALYSIS LAYER (spec §19): deterministic mock rules, no AI ===
+function analyzeHealth(M = MISSION) {
+  // Rule-based scoring (prototype thresholds, not clinically validated):
+  //   recovery decline >= 15%                 -> 2 points, otherwise 1
+  //   resting HR >= 10% above recent baseline -> +1
+  //   workload >= 15% above baseline          -> +1
+  //   total >= 3 -> "Emerging recovery risk detected" (warn), otherwise "Recovery trend deviation" (mon)
+  // Real thresholds would need clinical review.
+  const h = M.health, b = M.behavior;
+  const score = (derived.recoveryDecline >= 15 ? 2 : 1) + (derived.rhrDevRecent >= 10 ? 1 : 0) + (b.workloadPct >= 15 ? 1 : 0);
+  const risk = score >= 3;
+  return {
+    title: risk ? 'Emerging recovery risk detected' : 'Recovery trend deviation',
+    severity: risk ? 'warn' : 'mon',
+    confidence: risk ? 'Moderate' : 'Low',
+    observations: [
+      `sleep averaging ${fmtH(derived.sleepAvgH)}, below earlier baseline`,
+      `resting HR ${h.restingHR.current} BPM, +${derived.rhrDevRecent}% vs recent baseline`,
+      `recovery down ${derived.recoveryDecline}% over seven days`,
+      `workload up ${b.workloadPct}%`
+    ],
+    contributors: ['Rising mission workload', 'EVA preparation', 'Less recovery time between tasks'],
+    recommendation: 'Recovery period, then reassessment before EVA.',
+    disclaimer: 'Rule-based trend summary for human review. Not a diagnosis.'
+  };
+}
+const COMP_REPLY = {
+  vent: 'Thank you for telling me. Feeling irritated for several days can wear anyone down. Would you like to talk through what has changed?',
+  stress: 'Your recent check-ins show increased stress over three days. A short check-in can help us track whether this is easing.',
+  reflect: 'What stood out about today? Separating workload from how you are feeling can make the picture clearer.',
+  coping: 'Some options: a short rest block before EVA preparation, a brief stretch or breathing break, and raising workload concerns with your crew lead. A professional can suggest more.'
+};
+const CHECKIN_COL = {Good:'var(--g)',Neutral:'var(--mu)',Low:'var(--o)',Stressed:'var(--o)',Irritated:'var(--o)',Anxious:'var(--r)'};
+
+const HEALTH_METRICS = [
+  ['Heart Rate','94','BPM','mon', [68,72,75,70,80,85,90,94], 'LIVE • Wearable'],
+  ['Resting HR', String(MISSION.health.restingHR.current),'BPM','warn', [72,73,73,75,77,79,80,81], 'COMPUTED • 4h ago'],
+  ['Blood Oxygen','97','%','ok', [99,99,98,98,97,97,97,97], 'LIVE • Wearable'],
+  ['Sleep', String(MISSION.health.sleep.last7[6]),'hrs','warn', [7.1,6.8,6.5,6.2,6.0,5.9,5.7], 'DERIVED • Wearable'],
+  ['Recovery', String(MISSION.health.recovery.current),'%','warn', [80,79,78,82,74,69,64], 'TRITON-DERIVED'],
+  ['Hydration','72','%','mon', [90,88,85,82,78,75,72], 'MEASURED • 2h ago'],
+  ['Activity','68','min','ok', [60,65,70,75,80,72,68], 'LIVE • Wearable'],
+  ['Stress','Mod','','mon', [30,35,40,45,55,60,65,65], 'SELF-REPORTED'],
+  ['Temperature','36.8','°C','ok', [36.5,36.5,36.6,36.6,36.7,36.8,36.8], 'LIVE • Sensor']
+];
+
+const SCHEDULE = [
+  ['09:00','Research Operations', ''],
+  ['11:00','Equipment Maintenance', ''],
+  ['13:00','Systems Check', ''],
+  ['16:00','EVA Preparation', 'warn'],
+  ['18:00','EVA', 'warn'],
+  ['22:30','Recovery', ''],
+  ['23:30','Sleep', '']
+];
+
+const TIMELINE = [
+  ['08:00','Sleep deficit detected','mon'],
+  ['10:30','Mission workload increased','mon'],
+  ['12:15','Resting HR elevated above baseline','warn'],
+  ['12:40','CO₂ increase detected (0.6% → 0.8%)','warn'],
+  ['12:52','Multiple crew members report headaches','warn'],
+  ['13:00','Possible environmental correlation flagged','info'],
+  ['14:32','Critical physiological anomaly detected','crit'],
+  ['14:33','Crew assistance alert triggered','crit'],
+  ['14:34','Nearest responder identified — Daniel Kim','info']
+];
+
+const INSIGHTS = [
+  {
+    id: 0,
+    title: 'Recovery Deterioration Detected',
+    severity: 'warn',
+    confidence: 'MODERATE',
+    observed: [['Sleep',`↓ ${-derived.sleepDevPct}%`, 'var(--r)'],['Resting HR',`↑ ${derived.rhrDevRecent}%`, 'var(--o)'],['Mission workload',`↑ ${MISSION.behavior.workloadPct}%`, 'var(--o)'],['Recovery',`↓ ${derived.recoveryDecline}%`, 'var(--r)']],
+    contributors: ['Sleep deficit — duration below 7-day baseline','Increased mission workload','Reduced recovery time between tasks'],
+    get missionContext() { return `EVA scheduled in approximately ${Math.ceil(evaRemMin() / 60)} hours. High-demand activity approaching.`; },
+    action: 'Consider a recovery period and reassessment before EVA preparation begins.',
+    evidence: [`✓ Sleep below baseline (7-day avg ${fmtH(derived.sleepAvgH)} vs ${fmtH(MISSION.health.sleep.preflightH)} pre-flight)`,`✓ Resting HR above personal baseline (${MISSION.health.restingHR.current} vs ${MISSION.health.restingHR.recent} BPM)`,'✓ Mission workload increased over prior 48h','✓ Recovery score has declined for 3 consecutive days','— No single factor fully explains the trend']
+  },
+  {
+    id: 1,
+    title: 'Resting HR Elevation',
+    severity: 'warn',
+    confidence: 'MODERATE',
+    observed: [['Resting HR',`${MISSION.health.restingHR.current} BPM`, 'var(--o)'],['Baseline',`~${MISSION.health.restingHR.recent} BPM`, 'var(--cy)'],['Deviation',`↑ ${derived.rhrDevRecent}%`, 'var(--o)']],
+    contributors: ['Sleep deficit','Accumulated workload'],
+    missionContext: 'EVA approaching. Elevated resting HR combined with low recovery is a potential concern.',
+    action: 'Reassessment suggested after the next sleep period.',
+    evidence: [`✓ Resting HR ${MISSION.health.restingHR.current} BPM vs personal baseline ~${MISSION.health.restingHR.recent} BPM`,'✓ Tracks sleep deficit timeline closely','✓ No acute illness indicator present','— This is an observed deviation, not a medical diagnosis']
+  },
+  {
+    id: 2,
+    title: 'Possible Environmental Correlation',
+    severity: 'mon',
+    confidence: 'POSSIBLE CORRELATION',
+    observed: [['CO₂','0.6% → 0.8%', 'var(--o)'],['Crew symptoms','3 of 4', 'var(--o)'],['Time window','12:40–12:56', 'var(--cy)']],
+    contributors: ['Timing overlap between CO₂ rise and symptom onset','Multiple crew members affected'],
+    missionContext: 'All three affected crew members were in shared cabin zones during the event.',
+    action: 'Requires human review: verify air-quality sensors and check ventilation system.',
+    evidence: ['✓ CO₂ rose from 0.6% to 0.8% at 12:40','✓ Sarah Collins reported headache at 12:52','✓ Daniel Kim reported headache at 12:54','✓ Maya Chen reported headache at 12:56','— Timing overlap only. Causation is not established.','— CO₂ remains within technical limits but is elevated']
+  }
+];
+
+const DEMO_STEPS = [
+  {page:'overview', em:0, proto:0, nav:0, t:'08:00', title:'Step 1 — Normal Operations', desc:'All crew nominal.'},
+  {page:'health',  em:1, proto:0, nav:0, t:'10:30', title:'Step 2 — Physical Trends', desc:'Maya\'s recovery has declined. Sleep deficit and elevated resting HR detected.'},
+  {page:'mental',  em:2, proto:0, nav:0, t:'11:00', title:'Step 3 — Mental & Behavioral', desc:'Maya reports lower mood and higher stress. Activity and social interaction are trending down.'},
+  {page:'mental',  em:3, proto:0, nav:0, t:'11:15', title:'Step 4 — Cognitive Change', desc:'Reaction time and attention show deviation from baseline.'},
+  {page:'insights',em:4, proto:0, nav:0, t:'11:30', title:'Step 5 — Early-Risk Analysis', desc:'TRITON combines physical, mental, and cognitive signs into an emerging health risk.'},
+  {page:'mission', em:4, proto:0, nav:0, t:'11:45', title:'Step 6 — Mission Context', desc:'EVA is approaching. TRITON highlights the relevance of Maya\'s current state.'},
+  {page:'environment',em:5,proto:0,nav:0, t:'12:40', title:'Step 7 — Environment Event', desc:'CO₂ rises from 0.6% to 0.8% in shared modules.'},
+  {page:'crew',    em:6, proto:0, nav:0, t:'13:00', title:'Step 8 — Crew Correlation', desc:'Sarah, Daniel, and Maya report headaches. TRITON flags possible environmental correlation.'},
+  {page:'incidents',em:7, proto:0, nav:0, t:'14:10', title:'Step 9 — Incident', desc:'Maya logs a minor equipment impact injury.'},
+  {page:'emergency',em:8, proto:0, nav:0, t:'14:32', title:'Step 10 — Emergency', desc:`Maya's heart rate spikes to ${MAYA_CRIT_HR} BPM. Movement drops. Status: CRITICAL.`},
+  {page:'emergency',em:9, proto:0, nav:0, t:'14:33', title:'Step 11 — Crew Alert', desc:'No response detected. TRITON triggers crew assistance alert.'},
+  {page:'emergency',em:10,proto:0,nav:0, t:'14:34', title:'Step 12 — Responder', desc:`Daniel Kim identified as nearest available responder. Distance: ${RESP_DIST} m.`},
+  {page:'emergency',em:10,proto:1,nav:1, t:'14:35', title:'Step 13 — Response', desc:'Daniel navigates to Maya. Response protocol active.'},
+  {page:'medreview',em:11,proto:1,nav:0, t:'15:00', title:'Step 14 — Professional Review', desc:'The resolved event and its context automatically appear in professional review queues.'}
+];
+
+const ROLES = {
+  astro: { label: 'Astronaut', views: ['overview','health','insights','mission','mental','history','womens'] },
+  crew: { label: 'Crew Member', views: ['overview','crew','mission','emergency','environment'] },
+  phys: { label: 'Physician', views: ['overview','health','insights','medreview','history','incidents'] },
+  beh: { label: 'Behavioral Pro', views: ['overview','mental','behreview','history'] },
+  all: { label: 'All features (Demo)', views: ['overview','health','insights','mission','crew','emergency','environment','mental','incidents','medreview','behreview','history','womens'] }
+};
+function role() { return S.role || 'all'; }
+function roleAllows(page) { return ROLES[role()].views.includes(page); }
+function setRole(id) {
+  S.role = id;
+  if (!roleAllows(S.s)) S.s = 'overview';
+  render();
+}
+function navItems() {
+  const all = [['overview','Mission Overview','◈'], ['health','My Health','♡'], ['insights','AI Insights','✦'], ['mission','Mission','◷'], ['crew','Crew','⚉'], ['emergency','Emergency','⚠'], ['environment','Environment','☁'], ['mental','Mental & Behavioral','◐'], ['incidents','Incidents','✚'], ['medreview','Medical Review','⚕'], ['behreview','Behavioral Review','◑'], ['history','Health History','⧖'], ...(cur().wh ? [['womens','Private Health','♀']] : [])];
+  return all.filter(item => roleAllows(item[0]));
+}
+
+const HR_24H = [68,66,64,62,61,60,62,66,72,78,80,76,74,79,84,88,82,86,90,92,88,94,96,94];
+const SLEEP_7D = MISSION.health.sleep.last7;
+const RECOVERY_7D = [80,79,78,82,74,69,64];
+const ACTIVITY_7D = [92,88,101,75,80,72,68];
+const CO2_DATA = [0.60,0.60,0.61,0.60,0.60,0.60,0.62,0.68,0.74,0.80,0.80,0.80];
+const TEMP_DATA = [22.1,22.1,22.2,22.2,22.3,22.3,22.3,22.4,22.4,22.4,22.4,22.4];
+
+// === STATE ===
+const initialState = () => ({
+  v: 'hero',
+  s: 'overview',
+  t: 0,
+  em: 0,
+  ack: 0,
+  proto: 0,
+  nav: 0,
+  d: -1,
+  open: {},
+  corr: 0,
+  evDetail: 0,
+  timeOffset: 0,
+  form: {},
+  fail: { comms: false, co2: false, ai: false },
+  ac: false,
+  acF: 'all',
+  acked: {},
+  evSel: null,
+  rv: { med: 0, beh: 0 },
+  rvNote: {},
+  gl: false,
+  role: 'all'
+});
+const S = initialState();
+function sc() { return S.d >= 0 ? S.d : S.em; }
+const REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const evaRemMin = () => Math.max(0, MISSION.mission.evaWindowMin - S.timeOffset);
+const STATUS_TXT = { ok: '✓ NOMINAL', mon: '◐ MONITOR', warn: '▲ WARNING', crit: '✖ CRITICAL', info: 'ⓘ INFO' };
+
+// === HELPERS ===
+const pad = n => String(n).padStart(2, '0');
+const pill = (s, t) => `<span class="pill" style="--c:${K[s]}"><i></i>${t}</span>`;
+const alrt = (s, t) => `<div class="al" style="--c:${K[s]}"><i></i><b class="mono">${ALERT_LABELS[s] || 'ALERT'}</b><span style="font-size:13px">${t}</span></div>`;
+
+const getClock = () => {
+    const d = new Date();
+    d.setHours(14); // Base time for demo
+    d.setMinutes(0);
+    d.setMinutes(d.getMinutes() + S.timeOffset);
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+const ch = (d, c, bar, h=80) => {
+  const W=300,H=h,mx=Math.max(...d)*1.05,mn=bar?0:Math.min(...d)*0.95,n=d.length,y=v=>H-(v-mn)/(mx-mn)*(H-8)-3;
+  if(bar) return `<svg viewBox="0 0 ${W} ${H}" class="ch" style="height:${h}px" preserveAspectRatio="none">${d.map((v,i)=>`<rect x="${i*W/n+4}" y="${y(v)}" width="${W/n-8}" height="${H-y(v)}" rx="2" fill="${c}" opacity=".75"/>`).join('')}</svg>`;
+  const p=d.map((v,i)=>`${i?'L':'M'}${(i*W/(n-1)).toFixed(1)} ${y(v).toFixed(1)}`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" class="ch" style="height:${h}px" preserveAspectRatio="none"><path d="${p}L${W} ${H}L0 ${H}Z" fill="${c}" opacity=".12"/><path d="${p}" fill="none" stroke="${c}" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+};
+
+const mt = ([l, v, u, s, data, src]) => `
+  <div class="m" style="--c:${K[s]}">
+    <div>
+      <div class="lbl">${l}</div>
+      <b class="mono" style="color:${K[s]}">${v} <small>${u}</small></b>
+      <span class="stt">${STATUS_TXT[s]}</span>
+      ${src ? `<div class="mono mu" style="font-size:10px; margin-top:4px; opacity:0.8">${src}</div>` : ''}
+    </div>
+    ${data ? ch(data, K[s], false, 28) : ''}
+  </div>
+`;
+
+const tl = arr => `
+  <div class="tl">
+    ${arr.map(([t, e, s]) => `
+      <div class="ev" onclick="go(${s === 'crit' ? "'emergency'" : (s === 'warn' ? "'insights'" : "'crew'")})">
+        <i style="background:${K[s]}"></i>
+        <time class="mono">${t}</time>
+        <span>${e}</span>
+      </div>
+    `).join('')}
+  </div>
+`;
+
+const cc = (t,d,c,bar) => `<div class="card"><div class="lbl">${t}</div>${ch(d,c,bar)}</div>`;
+
+// === SECTION RENDERERS ===
+// === EMERGENCY PROCEDURES (simulated, generic; not clinical protocols) ===
+const PROCS = {
+  A: {title:'Astronaut unresponsive', steps:[
+    ['VERIFY','Attempt communication with the affected astronaut.'],
+    ['ALERT','Notify available crew members.'],
+    ['RESPONDER','Daniel Kim identified as nearest available responder.',`Distance: ${RESP_DIST} m`],
+    ['ASSESS','Perform initial visual and physiological assessment.'],
+    ['STABILIZE','Follow the appropriate onboard emergency procedure.'],
+    ['MEDICAL ESCALATION','Prepare incident information for professional medical review.']]},
+  B: {title:'Physiological anomaly', steps:[
+    ['VERIFY READING','Confirm the sensor reading is valid.'],
+    ['REPEAT MEASUREMENT','Repeat or confirm the measurement.'],
+    ['CONTACT ASTRONAUT','Attempt communication with Maya Chen.'],
+    ['ASSESS SYMPTOMS','Ask about symptoms and check visible state.'],
+    ['ASSIGN MONITORING','Assign a crew member to monitor.'],
+    ['PROFESSIONAL REVIEW','Send the reading and context for professional review.']]},
+  C: {title:'Environmental emergency', steps:[
+    ['IDENTIFY AREA','Identify the affected module or zone.'],
+    ['CHECK READINGS','Check CO₂, temperature and air quality readings.'],
+    ['ALERT CREW','Notify crew members in and near the area.'],
+    ['MOVE / ASSIST','Move or assist affected crew to a safe area.'],
+    ['ISOLATE AREA','Avoid or isolate the affected area where appropriate.'],
+    ['ESCALATE','Escalate to mission control and professional support.']]},
+  D: {title:'Injury', steps:[
+    ['IDENTIFY INJURY','Identify the injury and body location.'],
+    ['ASSESS SEVERITY','Assess severity and pain level.'],
+    ['FIRST RESPONSE','Provide the appropriate onboard first response.'],
+    ['RECORD INCIDENT','Record the incident in the log.'],
+    ['MONITOR CONDITION','Monitor the condition over time.'],
+    ['PROFESSIONAL REVIEW','Send the record for professional review.']]}
+};
+const PST = ['PENDING','IN PROGRESS','COMPLETED','SKIPPED','NEEDS PRO GUIDANCE'];
+const PST_COL = {'PENDING':'var(--mu)','IN PROGRESS':'var(--cy)','COMPLETED':'var(--g)','SKIPPED':'var(--mu)','NEEDS PRO GUIDANCE':'var(--o)'};
+function scen() { return S.scen || 'A'; }
+function setScen(x) { S.scen = x; S.steps = null; render(); }
+function procStatus() {
+  if (S.steps) return S.steps;
+  const e = S.em;
+  return [e >= 5 ? 'COMPLETED' : 'IN PROGRESS', e >= 5 ? 'COMPLETED' : 'PENDING', e >= 6 ? 'COMPLETED' : 'PENDING', 'PENDING', 'PENDING', 'PENDING'];
+}
+function cycleStep(i) {
+  const st = [...procStatus()];
+  st[i] = PST[(PST.indexOf(st[i]) + 1) % PST.length];
+  S.steps = st;
+  render();
+}
+function resetProc() {
+  if (!confirm('Reset this response procedure? All step statuses will return to their starting values.')) return;
+  S.steps = null;
+  render();
+}
+function escLevel() {
+  if (S.em >= 6 && S.proto) return ['EMERGENCY RESPONSE ACTIVE', K.info];
+  if (S.em >= 3) return ['CRITICAL', K.crit];
+  if (S.em >= 1) return ['WARNING', K.warn];
+  return ['MONITOR', 'var(--mu)'];
+}
+function elapsedStr() {
+  const sec = S.em >= 3 ? 84 + (S.em - 3) * 12 + (S.proto ? 41 : 0) : 0;
+  return `${pad(Math.floor(sec / 60))}:${pad(sec % 60)}`;
+}
+function escStrip() {
+  const lvl = escLevel()[0];
+  const levels = ['MONITOR','WARNING','CRITICAL','EMERGENCY RESPONSE ACTIVE'];
+  return `<div class="chips" style="margin-bottom:14px">${levels.map(l => `<div class="chip ${l === lvl ? 'on' : ''}" style="--c:${l==='MONITOR'?'var(--mu)':l==='WARNING'?K.warn:l==='CRITICAL'?K.crit:K.info}">${l}</div>`).join('')}</div>`;
+}
+function scenBar() {
+  return `<div class="card"><div class="lbl" style="margin-bottom:8px">Response scenario</div><div class="chips">
+    ${Object.keys(PROCS).map(k => `<div class="chip ${scen()===k?'on':''}" style="--c:${K.cy}; cursor:pointer" onclick="setScen('${k}')">${k} · ${PROCS[k].title}</div>`).join('')}
+  </div></div>`;
+}
+function hierarchy() {
+  const P = PROCS[scen()], st = procStatus();
+  const done = st.filter(x => x === 'COMPLETED').length;
+  const idx = st.findIndex(x => x !== 'COMPLETED' && x !== 'SKIPPED');
+  const now = idx >= 0 ? P.steps[idx][0] : 'RESOLVED';
+  const nxt = idx >= 0 && idx < 5 ? P.steps[idx + 1][0] : 'MEDICAL REVIEW';
+  return `<div class="facts" style="margin-top:0">
+    <div class="fact">What<br><b>${P.title.toUpperCase()}</b></div>
+    <div class="fact">Who<br><b>MAYA CHEN</b></div>
+    <div class="fact">Where<br><b>${EVA_LOC.toUpperCase()}</b></div>
+    <div class="fact">Responding<br><b>DANIEL KIM — ${S.proto ? 'RESPONDING' : 'EN ROUTE'}</b></div>
+    <div class="fact">Now<br><b>${now}</b></div>
+    <div class="fact">Done<br><b>${done} / 6</b></div>
+    <div class="fact">Next<br><b>${nxt}</b></div>
+  </div>`;
+}
+function procPanel() {
+  const P = PROCS[scen()], st = procStatus();
+  const done = st.filter(x => x === 'COMPLETED').length;
+  const closed = st.every(x => x === 'COMPLETED' || x === 'SKIPPED');
+  if (closed) {
+    return `
+    <div class="card st anim-slide" style="--c:var(--g)">
+      <div class="lbl" style="color:var(--g); margin-bottom:6px">EMERGENCY RESOLVED</div>
+      <div class="facts">
+        <div class="fact">Affected astronaut<br><b>Maya Chen</b></div>
+        <div class="fact">Response time<br><b>02:41</b></div>
+        <div class="fact">Responder<br><b>Daniel Kim</b></div>
+        <div class="fact">Actions completed<br><b>${done} / 6</b></div>
+      </div>
+      <p><b>Follow-up:</b> Medical review required</p>
+      <div class="mu" style="font-size:13px; margin-top:8px">Incident added to:<br>✓ Health history<br>✓ Event timeline<br>✓ Medical review queue</div>
+      <div class="btns"><button class="btn" onclick="resetProc()">RESET PROCEDURE</button></div>
+    </div>`;
+  }
+  const idx = st.findIndex(x => x !== 'COMPLETED' && x !== 'SKIPPED');
+  return `
+  <div class="card" style="--c:var(--cy)">
+    <div class="row" style="border:0; flex-wrap:wrap">
+      <h2>Response Procedure — ${P.title}</h2>
+      <span class="chips"><span class="pill" style="--c:var(--o)">PLACEHOLDER PROCEDURE</span><span class="pill" style="--c:var(--cy)">${done} / 6 ACTIONS COMPLETED</span></span>
+    </div>
+    <p class="mu" style="font-size:12px; margin-bottom:10px">Tap a step to update its status. Generic placeholder procedure, not an operational protocol. Real procedures require clinical review.</p>
+    ${P.steps.map((p, i) => `
+      <div class="sub ${i === idx ? 'st pulse' : ''}" style="cursor:pointer; border-left:4px solid ${PST_COL[st[i]]}; ${i === idx ? 'background:rgba(76,201,240,0.1); margin:12px 0;' : 'margin:4px 0;'}" onclick="cycleStep(${i})">
+        <div><span class="lbl ${i === idx ? 'cy' : ''}">STEP 0${i + 1} — ${p[0]}</span><br>${p[1]}${p[2] ? `<br><small class="mono" style="color:var(--cy)">${p[2]}</small>` : ''}</div>
+        <span class="mono" style="font-size:12px; color:${PST_COL[st[i]]}">${i === idx ? '→ ' + st[i] : st[i]}</span>
+      </div>`).join('')}
+    <div class="lbl" style="margin-top:12px">Next: <span style="color:var(--tx)">${idx >= 0 ? P.steps[idx][0] : 'MEDICAL REVIEW'}</span></div>
+  </div>`;
+}
+function tsTimeline() {
+  const T = [['14:32:04','Critical anomaly detected',3,0],['14:32:08','Astronaut response not detected',3,0],['14:32:12','Crew alert issued',5,0],['14:32:18','Daniel Kim assigned as responder',6,0],['14:32:31','Responder en route',6,0],['14:33:04','Responder reached affected astronaut',6,1],['14:33:20','Initial assessment started',6,1]];
+  return `<div class="tl">${T.filter(([,,m,p]) => S.em >= m && (!p || S.proto)).map(([t, x]) => `<div class="ev"><time>${t}</time><span>${x}</span></div>`).join('')}</div>`;
+}
+
+// === INCIDENTS / REVIEWS (simulated) ===
+const INC_SEED = [{id:14, type:'Minor equipment impact', loc:'Left forearm', pain:3, sev:'Minor', treat:'Cold pack + rest', fu:true}];
+const LABS = [['Total cholesterol','182 mg/dL'],['LDL','104 mg/dL'],['HDL','58 mg/dL'],['Triglycerides','120 mg/dL'],['Fasting glucose','92 mg/dL'],['HbA1c','5.3%']];
+function incidents() { return S.incidents || INC_SEED; }
+function addInc() {
+  const v = id => document.getElementById(id).value.trim();
+  const list = incidents();
+  const next = {
+    id: Math.max(...list.map(i => i.id)) + 1,
+    type: v('i-type') || 'Unspecified', loc: v('i-loc') || 'Unspecified',
+    pain: Number(v('i-pain')) || 0, sev: v('i-sev'), treat: v('i-treat') || 'None recorded',
+    fu: v('i-fu') === '1', desc: v('i-desc')
+  };
+  S.incidents = [...list, next];
+  // Clear the form back to its defaults now that the entry is saved
+  document.querySelectorAll('[id^="i-"]').forEach(el => { if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = el.defaultValue; });
+  render();
+}
+function reviewFlagged() { return S.em >= 3 || incidents().some(i => i.sev !== 'Minor'); }
+function sleepAvg() {
+  const a = SLEEP_7D.reduce((x, y) => x + y, 0) / SLEEP_7D.length;
+  return `${Math.floor(a)}h ${String(Math.round((a % 1) * 60)).padStart(2,'0')}m`;
+}
+function reviewBadge() {
+  return reviewFlagged() ? pill('crit', 'REQUIRES PROFESSIONAL REVIEW') : pill('ok', 'NO FLAG');
+}
+function reviewStatus() {
+  return `<div class="chips" style="margin:10px 0">
+    <div class="chip ${S.em < 3 ? 'on' : ''}" style="--c:${K.ok}">SCHEDULED — BIWEEKLY</div>
+    <div class="chip ${S.em >= 3 ? 'on' : ''}" style="--c:${K.crit}">EVENT-TRIGGERED</div>
+  </div>`;
+}
+
+// === HEALTH HISTORY (simulated, personal baseline) ===
+function spark(arr, c, mn, mx) {
+  const n = arr.length;
+  const pts = arr.map((v, i) => `${(i * 300 / (n - 1)).toFixed(1)},${(75 - (v - mn) / (mx - mn) * 65).toFixed(1)}`).join(' ');
+  return `<svg viewBox="0 0 300 80" style="width:100%; height:80px; margin-top:6px"><polyline points="${pts}" fill="none" stroke="${c}" stroke-width="2"/></svg>`;
+}
+function fmtH(x) { return `${Math.floor(x)}h ${String(Math.round((x % 1) * 60)).padStart(2,'0')}m`; }
+
+// === PROFILES & PRIVATE ACCESS (prototype: role switch only, not real auth) ===
+const PROFILES = [
+  {id:'maya', name:'Maya Chen', wh:true},
+  {id:'daniel', name:'Daniel Kim', wh:false},
+  {id:'alex', name:'Alex Rahman', wh:false},
+  {id:'sarah', name:'Sarah Collins', wh:false}
+];
+function cur() { return PROFILES.find(p => p.id === (S.profile || 'maya')); }
+function setProfile(id) {
+  S.profile = id;
+  if (!cur().wh && S.s === 'womens') S.s = 'overview';
+  render();
+}
+const WH_SYMPTOMS = ['Cramps','Fatigue','Headache','Nausea','Mood change','Sleep disruption'];
+function whSyms() { return S.whSym || ['Fatigue','Sleep disruption']; }
+function togSym(x) {
+  const cur_ = whSyms();
+  S.whSym = cur_.includes(x) ? cur_.filter(v => v !== x) : [...cur_, x];
+  render();
+}
+function saveNote() {
+  S.whNote = document.getElementById('wh-note').value.trim();
+  document.getElementById('wh-note').value = '';
+  render();
+}
+
+const MED_FLOW = ['TRITON FLAGGED','REVIEW QUEUE','ASSIGNED TO PHYSICIAN','UNDER REVIEW','PHYSICIAN NOTE','FOLLOW-UP','RESOLVED'];
+const BEH_FLOW = ['TRITON FLAGGED','BEHAVIORAL REVIEW QUEUE','PROFESSIONAL REVIEW','SUMMARY / NOTE','FOLLOW-UP','CLOSED'];
+
+function visibleEvents() {
+  const evs = [];
+  if (sc() >= 1) evs.push({ id:'W-0041', t:'10:30', lvl:'warn', cat:'HEALTH', text:'Recovery deviation', sub:'Maya Chen' });
+  if (sc() >= 4) evs.push({ id:'I-0012', t:'11:30', lvl:'warn', cat:'INSIGHT', text:'Emerging recovery risk', sub:'TRITON' });
+  if (sc() >= 6) evs.push({ id:'W-0142', t:'12:40', lvl:'warn', cat:'ENV', text:'CO₂ elevation detected', sub:'Environment' });
+  if (sc() >= 7) evs.push({ id:'I-0014', t:'13:00', lvl:'mon', cat:'INSIGHT', text:'Symptom correlation', sub:'TRITON' });
+  if (sc() >= 8) evs.push({ id:'E-0142', t:'14:10', lvl:'info', cat:'INCIDENT', text:'Minor impact injury', sub:'Maya Chen' });
+  if (sc() >= 9) evs.push({ id:'E-0143', t:'14:32', lvl:'crit', cat:'EMERGENCY', text:'Possible incapacitation', sub:'Maya Chen' });
+  return evs.reverse();
+}
+function activeAlerts() {
+  return visibleEvents().filter(e => e.lvl !== 'info' && (!S.acted || !S.acted[e.id]));
+}
+function unackCount() {
+  return activeAlerts().filter(e => !S.acked[e.id]).length;
+}
+
+function alertCenter() {
+  const evs = activeAlerts();
+  const acts = evs.filter(e => S.acF === 'all' || e.lvl === S.acF);
+  return `
+    <div style="position:fixed; top:0; bottom:0; right:0; width:400px; max-width:100vw; background:rgba(10,18,34,.98); border-left:1px solid var(--ln); z-index:1000; display:flex; flex-direction:column; box-shadow:-20px 0 50px rgba(0,0,0,.5)" class="anim-slide">
+      <div style="padding:20px; border-bottom:1px solid var(--ln); display:flex; justify-content:space-between; align-items:center">
+        <h2>ALERT CENTER</h2>
+        <button class="btn" onclick="toggleAC()">CLOSE ✕</button>
+      </div>
+      <div style="padding:14px 20px; border-bottom:1px solid var(--ln); display:flex; gap:8px">
+        ${[['all','ALL'],['crit','CRITICAL'],['warn','WARNING'],['mon','MONITOR']].map(([k,l]) => `<div class="chip ${S.acF===k?'on':''}" style="--c:${k==='all'?'var(--cy)':K[k]}; cursor:pointer" onclick="setACF('${k}')">${l}</div>`).join('')}
+      </div>
+      <div style="flex:1; overflow-y:auto; padding:20px">
+        ${acts.length === 0 ? '<div class="mu" style="text-align:center; margin-top:40px">No active alerts match this filter.</div>' : ''}
+        ${acts.map(e => `
+          <div class="card ${e.lvl==='crit'?'crit-anim st':''}" style="--c:${K[e.lvl]}; margin-bottom:12px; cursor:pointer" onclick="selEvent('${e.id}')">
+            <div class="row" style="border:0">
+              <span class="mono" style="color:${K[e.lvl]}">${e.t} · ${e.id}</span>
+              ${S.acked[e.id] ? '<span class="mu" style="font-size:12px">ACKNOWLEDGED</span>' : '<span class="lbl" style="color:var(--tx)">UNACKNOWLEDGED</span>'}
+            </div>
+            <div style="font-weight:bold; margin:6px 0">${e.text}</div>
+            <div class="mu" style="font-size:13px">${e.sub}</div>
+            ${S.evSel === e.id ? `
+              <div class="anim-fade" style="margin-top:12px; border-top:1px solid var(--ln); padding-top:12px; font-size:13px; line-height:1.7">
+                <div class="lbl" style="margin-bottom:8px">EVENT DETAIL</div>
+                
+                ${e.id === 'E-0143' ? `
+                  <div class="row" style="border:0; padding:2px 0"><span>Observed</span> <b style="color:var(--r)">HR ↑, Movement ↓, Comms lost</b></div>
+                  <div class="row" style="border:0; padding:2px 0"><span>Mission</span> <b>EVA active</b></div>
+                  <div class="row" style="border:0; padding:2px 0"><span>Environment</span> <b>Nominal</b></div>
+                  <div class="row" style="border:0; padding:2px 0"><span>Crew</span> <b>Daniel available — ${RESP_DIST} m</b></div>
+                  <div class="row" style="border:0; padding:2px 0"><span>Action</span> <b style="color:var(--cy)">Crew assistance alert</b></div>
+                  <div class="row" style="border:0; padding:2px 0"><span>Status</span> <b style="color:var(--cy)">Response active</b></div>
+                  
+                  <div class="lbl" style="margin:12px 0 4px">LINKED RECORDS</div>
+                  <div class="mu" style="font-size:12px">Health History, Incident, Medical Review, Behavioral Review</div>
+                ` : `
+                  <div class="facts" style="margin-top:8px">
+                    <div class="fact">Severity<br><b style="color:${K[e.lvl]}">${e.lvl.toUpperCase()}</b></div>
+                    <div class="fact">Source<br><b>${e.cat}</b></div>
+                  </div>
+                `}
+                
+                <div class="btns" style="margin-top:12px">
+                  ${!S.acked[e.id] ? `<button class="btn" style="background:${K[e.lvl]}; color:#000; border:0" onclick="event.stopPropagation(); ackAlert('${e.id}')">ACKNOWLEDGE</button>` : ''}
+                  <button class="btn" onclick="event.stopPropagation(); openLink('${e.cat==='EMERGENCY'?'emergency':(e.cat==='ENV'?'environment':'insights')}')">GO TO SOURCE</button>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function groundPanel() {
+  return `
+    <div class="card anim-slide" style="--c:${S.fail.comms ? 'var(--o)' : 'var(--g)'}; border-left:4px solid ${S.fail.comms ? 'var(--o)' : 'var(--g)'}; margin-bottom:20px">
+      <div class="row" style="border:0">
+        <h2>GROUND LINK STATUS</h2>
+        <button class="btn" onclick="toggleGL()">CLOSE</button>
+      </div>
+      <div class="facts">
+        <div class="fact">Status<br><b style="color:${S.fail.comms ? 'var(--o)' : 'var(--g)'}">${S.fail.comms ? 'DELAYED' : 'NOMINAL'}</b></div>
+        <div class="fact">Last Sync<br><b>14:21:08</b></div>
+        <div class="fact">Next Window<br><b>${S.fail.comms ? 'Awaiting' : '14:42:00'}</b></div>
+        <div class="fact">Queued Reports<br><b>2</b></div>
+      </div>
+      ${S.fail.comms ? '<p style="color:var(--o); margin-top:10px">Medical reports stored locally. Awaiting transmission window.</p>' : ''}
+      <div class="btns">
+        <button class="btn" onclick="toggleFail('comms')">${S.fail.comms ? 'RESTORE LINK' : 'SIMULATE LOSS OF SIGNAL'}</button>
+      </div>
+    </div>
+  `;
+}
+
+const SC = {
+  overview: () => `
+    <h1>Mission Overview</h1>
+    <div class="card st ${S.em >= 3 ? 'pulse' : ''}" style="--c:${S.em >= 3 ? K.crit : K.warn}">
+      <div class="lbl" style="margin-bottom:6px">Mission Health Status</div>
+      <div style="font-size:26px; font-weight:700; letter-spacing:.04em; color:${S.em >= 3 ? K.crit : K.warn}; margin-bottom:8px">
+        ${S.em >= 3 ? '🔴 CRITICAL ALERT' : '🟡 MONITOR'}
+      </div>
+      <div class="mu" style="font-size:13px">${S.em >= 3 ? '1 critical event active' : '1 active concern'} &nbsp;·&nbsp; ${S.em >= 3 ? '3 crew nominal, 1 critical' : '3 crew nominal, 1 monitor'} &nbsp;·&nbsp; EVA in ${Math.floor(evaRemMin()/60)}h ${pad(evaRemMin()%60)}m</div>
+    </div>
+
+    <div class="sect-label">What needs attention</div>
+
+    ${S.em >= 3 ? `
+    <div class="queue-item anim-slide" style="--c:${K.crit}" onclick="go('emergency')">
+      <div>
+        <div style="font-weight:700; font-size:14px; color:${K.crit}; letter-spacing:.02em">🔴 CRITICAL &nbsp;—&nbsp; Maya Chen</div>
+        <div class="mu" style="margin-top:3px; font-size:13px">Possible incapacitation · Critical physiological anomaly at 14:32</div>
+      </div>
+      <span class="pill" style="--c:${K.crit}; flex-shrink:0">VIEW →</span>
+    </div>
+    ` : ''}
+
+    <div class="queue-item" style="--c:${K.warn}" onclick="go('health')">
+      <div>
+        <div style="font-weight:700; font-size:14px; color:${K.warn}; letter-spacing:.02em">🟠 WARNING &nbsp;—&nbsp; Maya Chen</div>
+        <div class="mu" style="margin-top:3px; font-size:13px">Recovery below personal baseline for 3 consecutive days</div>
+      </div>
+      <span class="pill" style="--c:${K.warn}; flex-shrink:0">VIEW →</span>
+    </div>
+
+    <div class="queue-item" style="--c:${K.mon}" onclick="go('crew')">
+      <div>
+        <div style="font-weight:700; font-size:14px; color:${K.mon}; letter-spacing:.02em">🟡 MONITOR &nbsp;—&nbsp; 3 Crew Members</div>
+        <div class="mu" style="margin-top:3px; font-size:13px">Possible shared environmental correlation · CO₂ elevation + headaches</div>
+      </div>
+      <span class="pill" style="--c:${K.mon}; flex-shrink:0">VIEW →</span>
+    </div>
+
+    <div class="sect-label" style="margin-top:24px">Crew at a glance</div>
+    <div class="g4">
+      ${CREW.map(c => `
+        <div class="card clk ${c.id==='maya' && S.em >= 3 ? 'crit-anim' : ''}" style="--c:${K[c.s]}; border-left:3px solid ${K[c.s]}" onclick="go('${c.id==='maya'&&S.em>=3 ? 'emergency' : 'crew'}')">
+          <div class="row"><b>${c.n}</b> ${pill(c.s, c.l)}</div>
+          <div class="mu" style="font-size:12px; margin:4px 0 8px">${c.r}</div>
+          <div class="row"><span class="lbl">HR</span> <span>${c.hr} BPM</span></div>
+          <div class="row"><span class="lbl">Recovery</span> <span>${c.recovery}%</span></div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="sect-label" style="margin-top:4px">Mission timeline — Day ${MISSION.mission.day}</div>
+    <div class="card">
+      ${tl(TIMELINE.filter(t => S.em > 0 || t[2] !== 'crit'))}
+    </div>
+    <p class="disclaimer">Wellness indicators for situational awareness — not medically diagnostic.</p>
+  `,
+  
+  health: () => `
+    <h1>My Health — Maya Chen</h1>
+    <div class="card" style="margin-bottom:18px; border-left:4px solid ${S.em >= 3 ? 'var(--r)' : (sc() >= 1 ? 'var(--o)' : 'var(--g)')}">
+      <div class="row" style="border:0"><h2>Health Passport</h2>${pill(S.em >= 3 ? 'crit' : (sc() >= 1 ? 'warn' : 'ok'), S.em >= 3 ? 'NOT READY' : (sc() >= 1 ? 'REVIEW SUGGESTED' : 'READY FOR DUTY'))}</div>
+      <p class="mu" style="font-size:13px">A shareable summary of readiness across domains.</p>
+      <div class="g3" style="margin-top:12px; gap:8px">
+        <div class="sub" style="margin:0"><span>Physical</span> <b style="color:${sc() >= 1 ? 'var(--o)' : 'var(--g)'}">${sc() >= 1 ? 'Review' : 'Nominal'}</b></div>
+        <div class="sub" style="margin:0"><span>Mental</span> <b style="color:${sc() >= 2 ? 'var(--o)' : 'var(--g)'}">${sc() >= 2 ? 'Review' : 'Nominal'}</b></div>
+        <div class="sub" style="margin:0"><span>Cognitive</span> <b style="color:${sc() >= 3 ? 'var(--o)' : 'var(--g)'}">${sc() >= 3 ? 'Review' : 'Nominal'}</b></div>
+      </div>
+    </div>
+    
+    <div class="card st mono" style="--c:${K.warn}; padding: 20px; font-size:13px">
+      <div class="row" style="border:0; margin-bottom:12px; font-size:14px">
+        <b style="color:var(--tx)">[SYS.DIAGNOSTIC] TRITON HEALTH ANALYSIS</b> 
+        ${pill('warn', 'RECOVERY &lt; BASELINE')}
+      </div>
+      <div style="color:var(--mu); line-height: 1.6">
+        <div>> Executing historical baseline analysis...</div>
+        <div>> Correlating vitals & mission data...</div>
+        <div style="margin: 12px 0; padding: 6px 0 6px 14px; border-left: 2px solid rgba(255,159,67,0.3)">
+          <div style="color:var(--tx)">[WARN] Sleep duration deviation: ${derived.sleepDevPct}% vs pre-flight baseline</div>
+          <div style="color:var(--tx)">[WARN] Mission workload factor: HIGH</div>
+          <div style="color:var(--tx)">[WARN] Consecutive sub-nominal recovery days: 3</div>
+        </div>
+        <div style="color:var(--cy); margin-top:12px">> MISSION IMPACT: EVA scheduled in T-${pad(Math.floor(evaRemMin()/60))}:${pad(evaRemMin()%60)}:00</div>
+        <div style="color:var(--o)">> SUGGESTED ACTION: Reassessment recommended prior to EVA preparation.</div>
+      </div>
+    </div>
+    
+    <div class="sect-label">Current vitals telemetry</div>
+    <div class="g3">
+      ${HEALTH_METRICS.map(m => `<div class="card" style="padding:16px 16px 8px">${mt(m)}</div>`).join('')}
+    </div>
+    
+    <div class="sect-label">System balance</div>
+    <div class="card st" style="--c:var(--o)">
+      <div class="lbl">Recovery Balance</div>
+      <div class="rb">
+        <svg viewBox="0 0 120 120" width="130">
+          <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"/>
+          <circle cx="60" cy="60" r="52" fill="none" stroke="var(--o)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${Math.round(327 * MISSION.health.recovery.current / 100)} 327" transform="rotate(-90 60 60)"/>
+          <text x="60" y="68" text-anchor="middle" fill="#fff" font-size="26" font-weight="700" class="mono">${MISSION.health.recovery.current}%</text>
+        </svg>
+        <div style="flex:1; min-width:200px">
+          <div style="margin-bottom: 8px">
+            <div class="row mono" style="border:none; padding:0; font-size:12px"><span class="lbl">Sleep Deficit</span><span style="color:var(--r)">↓ ${-derived.sleepDevPct}%</span></div>
+            <div class="bar"><i style="width: ${-derived.sleepDevPct}%; background: var(--r)"></i></div>
+          </div>
+          <div style="margin-bottom: 8px">
+            <div class="row mono" style="border:none; padding:0; font-size:12px"><span class="lbl">Workload</span><span style="color:var(--o)">↑ ${MISSION.behavior.workloadPct}%</span></div>
+            <div class="bar"><i style="width: ${MISSION.behavior.workloadPct}%; background: var(--o)"></i></div>
+          </div>
+          <div style="margin-bottom: 8px">
+            <div class="row mono" style="border:none; padding:0; font-size:12px"><span class="lbl">Recovery Decline</span><span style="color:var(--o)">↓ ${derived.recoveryDecline}%</span></div>
+            <div class="bar"><i style="width: ${derived.recoveryDecline}%; background: var(--o)"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect-label">Historical Trends (7 Days)</div>
+    <div class="g2">
+      ${cc('Heart Rate (BPM)', HR_24H, 'var(--r)')}
+      ${cc('Sleep (hours)', SLEEP_7D, 'var(--cy)', true)}
+      ${cc('Recovery (%)', RECOVERY_7D, 'var(--o)')}
+      ${cc('Activity (min)', ACTIVITY_7D, 'var(--g)', true)}
+    </div>
+
+    <div class="sect-label">Medication & Supplements</div>
+    <div class="card">
+      <div class="row"><span>Vitamin D (Weekly)</span> <b style="color:var(--g)">Taken</b></div>
+      <div class="row"><span>Melatonin 3mg (As needed)</span> <b style="color:var(--cy)">Last taken 12h ago</b></div>
+      ${sc() >= 8 ? `<div class="row"><span>Ibuprofen 400mg (Pain relief)</span> <b style="color:var(--cy)">Taken 14:15</b></div>` : `<div class="row"><span>Ibuprofen 400mg</span> <span class="mu">Not taken today</span></div>`}
+    </div>
+
+    <p class="disclaimer">Wellness indicators for situational awareness — not medically diagnostic.</p>
+  `,
+  
+  insights: () => `
+    <h1>AI Insights</h1>
+    <p class="mu" style="margin-bottom:16px">TRITON reasons across multiple signals to explain what it observes. Possible factors and recommendations are kept separate from measured data.</p>
+    
+    <div style="display:flex; gap:8px; margin-bottom:16px">
+      ${pill('info', 'TRITON AUTOMATION: ADVISORY ONLY')}
+      ${pill('info', 'SIMULATED / RULE-BASED')}
+    </div>
+    
+    ${INSIGHTS.map((ins, i) => `
+      <div class="sect-label">TRITON ANALYSIS</div>
+      <div class="card insight-card" style="--c:${K[ins.severity]}">
+        <div class="row" style="border:0">
+          <h2>${ins.title}</h2>
+          <div style="display:flex; gap:6px">
+            ${pill(ins.severity, ins.confidence)}
+          </div>
+        </div>
+        
+        <div class="g2" style="margin-top: 10px">
+          <div>
+            <div class="lbl">Observed Telemetry</div>
+            <table class="mono">
+              ${ins.observed.map(o => `<tr><td>${o[0]}</td><td style="color:${o[2]||'var(--tx)'}; text-align:right"><b>${o[1]}</b></td></tr>`).join('')}
+            </table>
+          </div>
+          <div>
+            <div class="lbl">Computed Contributors</div>
+            <ul style="margin: 6px 0 10px 20px; color:var(--mu)">
+              ${ins.contributors.map(c => `<li>${c}</li>`).join('')}
+            </ul>
+            <div class="lbl">Mission Context</div>
+            <p class="mu" style="margin-bottom: 10px">${ins.missionContext}</p>
+            <div class="lbl">Suggested Action</div>
+            <p style="color:var(--cy)">${ins.action}</p>
+          </div>
+        </div>
+        
+        <button class="btn" style="margin-top: 8px" onclick="tog(${i})">${S.open[i] ? 'HIDE DIAGNOSTIC LOG' : 'VIEW DIAGNOSTIC LOG'}</button>
+        
+        ${S.open[i] ? `
+          <div class="insight-ev anim-fade mono">
+            <div class="insight-ev-title"><i style="color:var(--cy)">✦</i> [SYS.LOG] Analysis Evidence</div>
+            <div class="insight-ev-content">
+              ${ins.evidence.map(e => `<div>${e.startsWith('✓') ? '<span style="color:var(--g)">[PASS]</span>' : (e.startsWith('—') ? '<span style="color:var(--mu)">[INFO]</span>' : '<span style="color:var(--cy)">[DATA]</span>')} ${e.substring(1).trim()}</div>`).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `).join('')}
+  `,
+  
+  mission: () => {
+    let tRem = evaRemMin();
+    const h = Math.floor(tRem / 60);
+    const m = tRem % 60;
+    return `
+    <h1>Mission Schedule</h1>
+    <div class="g2">
+      <div class="card">
+        <h2>Today's Timeline</h2>
+        <div class="tl">
+          ${SCHEDULE.map(s => `
+            <div class="ev" style="${s[2] ? `color:var(--o);font-weight:bold` : ''}">
+              <i style="background:${s[2] ? 'var(--o)' : 'var(--mu)'}"></i>
+              <time>${s[0]}</time>
+              <span>${s[1]}</span>
+              ${s[2] ? `<span class="pill" style="--c:var(--o); margin-left:8px">HIGH DEMAND</span>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div>
+        <div class="card" style="--c:${K.warn}; border-left: 4px solid var(--o)">
+          <div class="lbl" style="margin-bottom: 10px">UPCOMING EVENT</div>
+          <div style="font-size: 32px; font-weight: 700; color: var(--o)">EVA IN</div>
+          <div style="font-size: 48px; font-weight: 700; color: var(--o); line-height: 1">${pad(h)}h ${pad(m)}m</div>
+          
+          <div style="margin-top: 24px; font-family: ui-monospace, monospace; font-size: 13px">
+            <div class="row"><span>Recovery</span> <span style="color:var(--r)">Below baseline</span></div>
+            <div class="row"><span>Fatigue</span> <span style="color:var(--o)">Elevated</span></div>
+            <div class="row"><span>Workload</span> <span style="color:var(--o)">High</span></div>
+          </div>
+          
+          <div style="margin-top: 20px">
+            ${alrt('warn', 'High-demand activity approaching while recovery remains below baseline.')}
+            <p class="mu" style="font-size:13px; margin-top:12px">Suggested: Consider recovery period and reassessment before EVA preparation.</p>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Mission Info</h2>
+          <div class="row"><span class="mu">Mission Day</span> <b>${MISSION.mission.day}</b></div>
+          <div class="row"><span class="mu">Current Orbit</span> <b>LEO - Alt 408km</b></div>
+          <div class="row"><span class="mu">Next AOS</span> <b>12m 45s</b></div>
+        </div>
+      </div>
+    </div>
+  `},
+  
+  crew: () => `
+    <h1>Crew Situational Awareness</h1>
+    <div class="g4">
+      ${CREW.map(c => `
+        <div class="card ${c.id==='maya' && S.em>=3 ? 'st pulse' : ''} ${c.id==='daniel' && S.em>=6 ? 'st' : ''}" style="--c:${c.id==='daniel' && S.em>=6 ? K.info : K[c.s]}">
+          <div class="row" style="border:0; margin-bottom:8px">
+            <div><b>${c.n}</b><br><small class="mu">${c.r}</small></div>
+            ${pill(c.id==='maya'&&S.em>=3 ? 'crit' : (c.id==='daniel'&&S.em>=6 ? 'info' : c.s), c.id==='daniel'&&S.em>=6 ? 'NEAREST' : c.l)}
+          </div>
+          ${c.extra.map(e => `<div class="row" style="font-size:12px"><span class="mu">${e[0]}</span> <b>${e[1]}</b></div>`).join('')}
+        </div>
+      `).join('')}
+    </div>
+    
+    <div class="g2">
+      <div class="card">
+        <h2>Crew Recovery Status</h2>
+        ${CREW.map(c => `
+          <div class="row" style="border:0; margin-top:8px">
+            <span style="width:100px">${c.n}</span>
+            <div style="flex:1; background:var(--ln); height:16px; border-radius:4px; overflow:hidden">
+              <div style="width:${c.recovery}%; height:100%; background:${c.recovery<70 ? K.warn : K.ok}"></div>
+            </div>
+            <span style="width:96px; text-align:right">${c.recovery}% <small class="mu">${c.recovery<70 ? '▲ Low' : '✓ OK'}</small></span>
+          </div>
+        `).join('')}
+      </div>
+      
+      <div class="card">
+        <div class="row" style="border:0">
+          <h2>Shared Event Detection</h2>
+          ${pill('mon', 'POSSIBLE CORRELATION')}
+        </div>
+        <p class="mu">Multiple crew members reported similar symptoms during the same environmental event.</p>
+        
+        <div class="flow" style="margin: 24px 0">
+          <div class="n" style="--c:${K.warn}; text-align:center"><b>CO₂ INCREASE</b><br>0.6% → 0.8%</div>
+          <div class="ar">↓</div>
+          <div class="lbl" style="margin: 4px 0">POSSIBLE SHARED EVENT</div>
+          <div style="display:flex; justify-content:center; gap:30px; width:100%; margin-top:10px">
+            <div class="ar" style="transform: rotate(30deg) translateY(10px)">↘</div>
+            <div class="ar">↓</div>
+            <div class="ar" style="transform: rotate(-30deg) translateY(10px)">↙</div>
+          </div>
+          <div style="display:flex; gap:14px; width:100%; justify-content:center; margin-top: 10px">
+            <div class="n" style="--c:${K.mon}"><b>Sarah</b><br>Headache<br><span class="mu" style="font-size:12px">12:52</span></div>
+            <div class="n" style="--c:${K.mon}"><b>Daniel</b><br>Headache<br><span class="mu" style="font-size:12px">12:54</span></div>
+            <div class="n" style="--c:${K.mon}"><b>Maya</b><br>Headache<br><span class="mu" style="font-size:12px">12:56</span></div>
+          </div>
+        </div>
+        <div class="lbl" style="text-align:center; margin: 16px 0; color:var(--cy)">Timing overlap only. Causation not established.</div>
+        
+        <button class="btn" style="width:100%" onclick="S.corr=!S.corr;render()">${S.corr ? 'HIDE DETAILS' : 'VIEW CORRELATION'}</button>
+        ${S.corr ? `
+          <div class="insight-ev anim-fade" style="margin-top:10px">
+            <div class="insight-ev-title"><i style="color:var(--cy)">✦</i> Analysis Evidence</div>
+            <div class="insight-ev-content">
+              ${INSIGHTS[2].evidence.map(e => `<div>${e}</div>`).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `,
+  
+  mental: () => `
+    <h1>Mental & Behavioral</h1>
+    <div class="card">
+      <div class="row" style="border:0">
+        <h2>Wellbeing Check-ins</h2>
+        ${pill('info', 'SOURCE: SELF-REPORTED')}
+      </div>
+      <p class="mu" style="font-size:12px; margin-bottom:8px">Private self-report, last seven days (oldest to latest)</p>
+      <div class="chips" style="margin:8px 0 12px">
+        ${MISSION.mentalHealth.checkins.map(c => `<div class="chip on" style="--c:${CHECKIN_COL[c]}">${c}</div>`).join('')}
+      </div>
+      <div class="row"><span>Motivation</span><b class="mono" style="color:${K.warn}">${MISSION.mentalHealth.motivation}</b></div>
+      <div class="row"><span>Feeling of isolation</span><b class="mono" style="color:${K.warn}">${MISSION.mentalHealth.isolation}</b></div>
+      <div class="row"><span>Sleep quality</span><b class="mono" style="color:${K.warn}">${MISSION.mentalHealth.sleepQuality}</b></div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--cy)">
+      <div class="lbl" style="color:var(--cy)">SCRIPTED SUPPORT — NOT A REPLACEMENT FOR PROFESSIONAL CARE</div>
+      <p class="mu" style="font-size:12px">Trends are compared against Maya's own baseline. All data is simulated for this prototype.</p>
+    </div>
+
+    <div class="card st" style="--c:${K.warn}">
+      <div class="row" style="border:0; flex-wrap:wrap"><h2>Early-Risk Analysis (rule-based)</h2>${pill(analyzeHealth().severity,analyzeHealth().title.toUpperCase())}</div>
+      <div class="chips" style="margin:10px 0">
+        ${['Sleep ↓','Recovery ↓','Resting HR ↑','Mood ↓','Workload ↑','Cognitive ↓'].map(x=>`<div class="chip on" style="--c:${K.warn}">${x}</div>`).join('')}
+      </div>
+      <p><b>Observed changes:</b> ${analyzeHealth().observations.join('; ')}.</p>
+      <p><b>Possible contributors:</b> ${analyzeHealth().contributors.join(', ')}.</p>
+      <p><b>Mission relevance:</b> EVA in ${Math.floor(evaRemMin()/60)}h ${pad(evaRemMin()%60)}m. Recovery is below personal baseline.</p>
+      <p><b>Confidence:</b> ${analyzeHealth().confidence}</p>
+      <p><b>Suggested action:</b> ${analyzeHealth().recommendation}</p>
+      <p class="mu" style="font-size:12px; margin-top:8px">How this is computed: fixed rules on simulated data — recovery decline ≥ 15%, resting HR ≥ 10% above recent baseline, workload ≥ 15%. Thresholds are prototype placeholders, not clinically validated.</p>
+      <p class="disclaimer">${analyzeHealth().disclaimer}</p>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <h2>Behavioral Pattern</h2>
+        <p class="mu" style="font-size:12px; margin-bottom:8px">Last 7 days vs. personal baseline</p>
+        ${[
+          ['Sleep irregularity', MISSION.behavior.sleepIrregularity, K.warn],
+          ['Activity', `↓ ${-MISSION.behavior.activityPct}%`, K.warn],
+          ['Workload tolerance', MISSION.behavior.workloadTolerance, K.warn],
+          ['Social interaction', `↓ ${-MISSION.behavior.socialPct}%`, K.warn],
+          ['Isolation / withdrawal', MISSION.behavior.isolation, K.warn],
+          ['Work pattern', MISSION.behavior.workPattern, K.warn],
+          ['Mood check-in trend', MISSION.behavior.moodTrend, K.crit],
+          ['Cognitive performance', `↑ ${derived.reactionDev}% slower`, K.warn]
+        ].map(([a,b,c])=>`<div class="row"><span>${a}</span><b class="mono" style="color:${c}">${b}</b></div>`).join('')}
+        <p style="margin-top:10px"><b>Behavioral pattern differs from recent baseline.</b></p>
+      </div>
+      <div class="card">
+        <h2>Cognitive Performance</h2>
+        <div class="facts" style="margin:10px 0">
+          <div class="fact">Pre-flight baseline<br><b>${MISSION.health.reaction.preflightMs} ms</b></div>
+          <div class="fact">Current<br><b>${MISSION.health.reaction.currentMs} ms</b></div>
+          <div class="fact">Deviation<br><b style="color:${K.warn}">+${derived.reactionDev}%</b></div>
+        </div>
+        <div class="row"><span>Attention</span><span class="mono">${MISSION.cognitive.attention.pre} → ${MISSION.cognitive.attention.current}</span><b class="mono" style="color:${K.warn}">${derived.attentionDev}%</b></div>
+        <div class="row"><span>Memory</span><span class="mono">${MISSION.cognitive.memory.pre} → ${MISSION.cognitive.memory.current}</span><b class="mono" style="color:${K.warn}">${derived.memoryDev}%</b></div>
+        <p class="mu" style="font-size:12px; margin-top:8px">Simulated performance indicators, not a diagnosis.</p>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <h2>Mood Check-ins</h2>
+        <div class="chips" style="margin-top:10px">
+          ${['Good','Neutral','Low','Stressed','Irritated','Anxious'].map(x=>`<div class="chip ${x==='Irritated'?'on':''}" style="--c:${K.warn}">${x}</div>`).join('')}
+        </div>
+        <p class="mu" style="font-size:12px; margin-top:10px">Latest check-in: ${MISSION.mentalHealth.latestState}. Stress indicators have persisted for ${MISSION.mentalHealth.stressDays} days.</p>
+      </div>
+      <div class="card">
+        <h2>Health Passport</h2>
+        <div class="chips" style="margin:10px 0">
+          ${['Pre-flight','Training','Launch','Day 1','Day 90','Current'].map((x,i,a)=>`<div class="chip ${i===a.length-1?'on':''}" style="--c:${K.cy}">${x}</div>`).join('')}
+        </div>
+        <div class="row"><span>Resting HR, pre-flight</span><b class="mono">${MISSION.health.restingHR.preflight} BPM</b></div>
+        <div class="row"><span>Resting HR, recent</span><b class="mono">${MISSION.health.restingHR.recent} BPM</b></div>
+        <div class="row"><span>Resting HR, current</span><b class="mono" style="color:${K.warn}">${MISSION.health.restingHR.current} BPM (+${derived.rhrDevRecent}%)</b></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Private Companion</h2>
+      <p class="mu" style="font-size:12px; margin-bottom:12px">Predetermined conversation. No live AI is connected in this prototype and it cannot alert anyone. For any real concern, speak to a person: crew lead or flight surgeon.</p>
+      <div style="display:grid; gap:10px">
+        <div class="sub" style="justify-content:flex-end"><span><b class="lbl" style="color:var(--cy)">Astronaut</b><br>I've been getting irritated with everyone lately.</span></div>
+        <div class="sub" style="border-color:var(--cy)"><span><b class="lbl" style="color:var(--g)">TRITON Companion</b><br>You've reported reduced sleep and increased workload over the last few days. Would you like to complete a short private stress check-in?</span></div>
+        ${S.compTopic ? `<div class="sub anim-fade" style="border-color:var(--cy)"><span><b class="lbl" style="color:var(--g)">TRITON Companion</b><br>${COMP_REPLY[S.compTopic]}</span></div>` : ''}
+        ${S.comp===1 ? `<div class="sub anim-fade" style="border-color:var(--cy)"><span><b class="lbl" style="color:var(--g)">TRITON Companion</b><br>Your recent check-ins show increased stress. A private behavioral-health review may be useful if this persists.</span></div>` : ''}
+        ${S.comp===2 ? `<div class="sub anim-fade" style="border-color:var(--cy)"><span><b class="lbl" style="color:var(--g)">TRITON Companion</b><br>Summary prepared for behavioral-health review. A professional will decide next steps.</span></div>` : ''}
+      </div>
+      <div class="btns">
+        ${[['vent','Vent'],['stress','Talk about stress'],['reflect','Reflect on my day'],['coping','Coping suggestions']].map(([k,l]) => `<button class="btn" onclick="S.compTopic='${k}';render()">${l}</button>`).join('')}
+        <button class="btn" onclick="S.comp=1;render()">COMPLETE PRIVATE CHECK-IN</button>
+        <button class="btn" onclick="S.comp=2;render()">REQUEST PROFESSIONAL SUMMARY</button>
+      </div>
+    </div>
+  `,
+
+  incidents: () => `
+    <h1>Incidents</h1>
+    <div class="card">
+      <div class="row" style="border:0"><h2>Log Incident</h2><span class="lbl">Manual entry</span></div>
+      <p class="mu" style="font-size:12px">Entered manually for this prototype. Injury is not detected by computer vision.</p>
+      <div class="g2" style="gap:10px; margin-top:12px">
+        <label>Event type<input id="i-type" class="inp" value="Minor equipment impact"></label>
+        <label>Body location<input id="i-loc" class="inp" placeholder="e.g. Left forearm"></label>
+        <label>Pain (0–10)<input id="i-pain" class="inp" type="number" min="0" max="10" value="3"></label>
+        <label>Severity<select id="i-sev" class="inp"><option>Minor</option><option>Moderate</option><option>Serious</option></select></label>
+        <label style="grid-column:1/-1">Description<textarea id="i-desc" class="inp" rows="2"></textarea></label>
+        <label>Treatment given<input id="i-treat" class="inp" placeholder="e.g. Cold pack + rest"></label>
+        <label>Follow-up<select id="i-fu" class="inp"><option value="1">Required</option><option value="0">Not required</option></select></label>
+      </div>
+      <div class="btns"><button class="btn" onclick="addInc()">SUBMIT INCIDENT</button></div>
+    </div>
+    <div class="lbl" style="margin:6px 0 8px">Maya Chen — incident history</div>
+    ${incidents().slice().reverse().map(i => `
+      <div class="card" style="border-left:3px solid ${i.sev==='Minor'?K.ok:K.warn}">
+        <div class="row" style="border:0"><h3 class="mono">INCIDENT #0${i.id}</h3>${pill(i.sev==='Minor'?'ok':'warn', i.sev.toUpperCase())}</div>
+        <div class="mu" style="font-size:13px; line-height:1.8">
+          Type: ${i.type}<br>Location: ${i.loc}<br>Pain: ${i.pain}/10<br>Treatment: ${i.treat}<br>
+          Follow-up: <b style="color:${i.fu?K.warn:K.ok}">${i.fu?'Required':'Not required'}</b>
+          ${i.desc ? `<br>Notes: ${i.desc}` : ''}
+        </div>
+        <div class="lbl" style="margin-top:8px">Added to: health history · event timeline · medical review</div>
+      </div>`).join('')}
+  `,
+
+  medreview: () => `
+    <h1>Medical Review</h1>
+    <div class="card ${reviewFlagged() ? 'st' : ''}" style="--c:${K.crit}">
+      <div class="row" style="border:0; flex-wrap:wrap"><h2>Biweekly Health Review — Maya Chen</h2>${reviewBadge()}</div>
+      ${reviewStatus()}
+      <p>Recovery declined ${derived.recoveryDecline}% over the last week.</p>
+      <div class="facts">
+        <div class="fact">Sleep average<br><b>${sleepAvg()}</b></div>
+        <div class="fact">Resting HR<br><b style="color:${K.warn}">+${derived.rhrDevRecent}% vs baseline</b></div>
+        <div class="fact">Reaction time<br><b style="color:${K.warn}">+${derived.reactionDev}%</b></div>
+        <div class="fact">New incidents<br><b>${incidents().filter(i=>i.id>14).length}</b></div>
+        <div class="fact">Low-mood check-ins<br><b>${MISSION.mentalHealth.lowMoodCheckins}</b></div>
+      </div>
+      <p><b>Rule-based assessment:</b> ${analyzeHealth().title}.</p>
+      <p><b>Flagged for physician review:</b> ${reviewFlagged() ? 'YES' : 'NO'}</p>
+      ${S.whShare ? '<p class="mu" style="font-size:13px"><b>Women\'s health summary:</b> shared by crew member consent.</p>' : ''}
+      <p class="disclaimer">TRITON prepares this summary. The physician makes the clinical judgement.</p>
+      
+      <div class="lbl" style="margin:24px 0 10px">Review Workflow</div>
+      <div style="display:flex; gap:4px; margin-bottom:16px; overflow-x:auto; padding-bottom:8px">
+        ${MED_FLOW.map((step, i) => `<div class="chip ${i === S.rv.med ? 'on' : ''}" style="--c:${i < S.rv.med ? 'var(--g)' : 'var(--cy)'}; opacity:${i > S.rv.med ? 0.5 : 1}; flex:none">${step}</div>`).join('')}
+      </div>
+      
+      ${S.rv.med === 2 || S.rv.med === 3 ? `
+        <label style="margin-top:16px">Physician Note (Simulated)
+          <textarea id="rv-note-med" class="inp" rows="2" placeholder="Add clinical note here..."></textarea>
+        </label>
+      ` : ''}
+      ${S.rvNote.med ? `<div class="sub" style="margin-top:12px; display:block"><span class="lbl" style="color:var(--cy)">PHYSICIAN NOTE</span><div style="margin-top:4px">${S.rvNote.med}</div></div>` : ''}
+      
+      <div class="btns" style="margin-top:16px">
+        ${S.rv.med < MED_FLOW.length - 1 ? `<button class="btn" onclick="advReview('med')">ADVANCE TO: ${MED_FLOW[S.rv.med + 1]}</button>` : `<span class="pill" style="--c:var(--g)">REVIEW RESOLVED</span>`}
+        ${S.rv.med > 0 && S.rv.med < MED_FLOW.length - 1 ? `<button class="btn" onclick="S.rv.med=0;render()">RESET</button>` : ''}
+      </div>
+    </div>
+
+    <div class="card" style="border-style:solid">
+      <div class="lbl" style="color:var(--cy)">LIVE TELEMETRY</div>
+      <p class="mu" style="font-size:12px">Continuous wearable data. Shown on the My Health page.</p>
+    </div>
+    <div class="card" style="border-style:dashed; border-color:rgba(130,170,230,.35)">
+      <div class="row" style="border:0"><span class="lbl" style="color:var(--o)">PERIODIC MEDICAL DATA</span><b class="mono">Last measured: ${MISSION.medical.labsMeasuredDaysAgo} days ago</b></div>
+      <p class="mu" style="font-size:12px; margin-bottom:8px">Laboratory panel. Simulated values. Not continuous telemetry.</p>
+      ${LABS.map(([a,b]) => `<div class="row"><span>${a}</span><b class="mono">${b}</b></div>`).join('')}
+    </div>
+  `,
+
+  behreview: () => `
+    <h1>Behavioral Review</h1>
+    <div class="card ${reviewFlagged() ? 'st' : ''}" style="--c:${K.warn}">
+      <div class="row" style="border:0; flex-wrap:wrap"><h2>Behavioral Health Review — Maya Chen</h2>${reviewBadge()}</div>
+      ${reviewStatus()}
+      <div class="facts">
+        <div class="fact">Mood trend<br><b style="color:${K.crit}">↓ ${-MISSION.behavior.moodPct}%</b></div>
+        <div class="fact">Sleep<br><b style="color:${K.warn}">↓ ${-MISSION.behavior.sleepPct}%</b></div>
+        <div class="fact">Stress<br><b style="color:${K.warn}">↑ ${MISSION.behavior.stressPct}%</b></div>
+        <div class="fact">Social interaction<br><b style="color:${K.warn}">↓ ${-MISSION.behavior.socialPct}%</b></div>
+        <div class="fact">Reaction time<br><b style="color:${K.warn}">↑ ${derived.reactionDev}% (slower)</b></div>
+      </div>
+      <p><b>TRITON summary:</b> Persistent changes across behavioral and physiological indicators may warrant professional review.</p>
+      <p class="disclaimer">This is not a diagnosis. Human review required.</p>
+      
+      <div class="lbl" style="margin:24px 0 10px">Review Workflow</div>
+      <div style="display:flex; gap:4px; margin-bottom:16px; overflow-x:auto; padding-bottom:8px">
+        ${BEH_FLOW.map((step, i) => `<div class="chip ${i === S.rv.beh ? 'on' : ''}" style="--c:${i < S.rv.beh ? 'var(--g)' : 'var(--cy)'}; opacity:${i > S.rv.beh ? 0.5 : 1}; flex:none">${step}</div>`).join('')}
+      </div>
+
+      ${S.rv.beh === 1 || S.rv.beh === 2 ? `
+        <label style="margin-top:16px">Professional Note (Simulated)
+          <textarea id="rv-note-beh" class="inp" rows="2" placeholder="Add behavioral note here..."></textarea>
+        </label>
+      ` : ''}
+      ${S.rvNote.beh ? `<div class="sub" style="margin-top:12px; display:block"><span class="lbl" style="color:var(--cy)">PROFESSIONAL NOTE</span><div style="margin-top:4px">${S.rvNote.beh}</div></div>` : ''}
+
+      <div class="btns" style="margin-top:16px">
+        ${S.rv.beh < BEH_FLOW.length - 1 ? `<button class="btn" onclick="advReview('beh')">ADVANCE TO: ${BEH_FLOW[S.rv.beh + 1]}</button>` : `<span class="pill" style="--c:var(--g)">REVIEW CLOSED</span>`}
+        ${S.rv.beh > 0 && S.rv.beh < BEH_FLOW.length - 1 ? `<button class="btn" onclick="S.rv.beh=0;render()">RESET</button>` : ''}
+      </div>
+    </div>
+  `,
+
+  history: () => {
+    const sleepNow = SLEEP_7D.reduce((x, y) => x + y, 0) / SLEEP_7D.length;
+    const sleepDev = Math.round((7.4 - sleepNow) / 7.4 * 100);
+    
+    const stages = [['PRE-FLIGHT','Baseline recorded',K.ok],['TRAINING','Baseline validated',K.ok],['LAUNCH','Launch',K.ok],['MISSION DAY 1','Adaptation period',K.ok],['MISSION DAY 90','Stable reference',K.ok],[`CURRENT · DAY ${MISSION.mission.day}`,'Trend deviation flagged',K.warn]];
+    return `
+    <h1>Health History</h1>
+    <p class="mu" style="font-size:12px; margin-bottom:14px">Maya Chen. Compared against her own baseline, not population norms. Simulated data.</p>
+
+    <div class="card">
+      <h2>Mission Timeline</h2>
+      <div class="tl" style="margin-top:12px">
+        ${stages.map(([t, d, c]) => `<div class="ev"><i style="--c:${c}"></i><span class="lbl" style="color:var(--tx); width:150px">${t}</span><span class="mu">${d}</span></div>`).join('')}
+        ${S.em >= 3 ? `<div class="ev"><i style="--c:${K.crit}"></i><span class="lbl" style="color:var(--r); width:150px">TODAY</span><span>Critical anomaly — ${EVA_LOC}</span></div>` : ''}
+        ${incidents().filter(i => i.id > 14).map(i => `<div class="ev"><i style="--c:${K.warn}"></i><span class="lbl" style="color:var(--tx); width:150px">INCIDENT #0${i.id}</span><span class="mu">${i.type}</span></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Baseline Comparison</h2>
+      <div class="row" style="font-weight:600"><span class="lbl">Metric</span><span class="lbl">Pre-flight → Now</span><span class="lbl">Change</span></div>
+      <div class="row"><span>Resting HR</span><span class="mono">${MISSION.health.restingHR.preflight} → ${MISSION.health.restingHR.current} BPM</span><b class="mono" style="color:${K.warn}">+${derived.rhrDevRecent}% vs recent</b></div>
+      <div class="row"><span>Sleep (7-day avg)</span><span class="mono">7h 24m → ${fmtH(sleepNow)}</span><b class="mono" style="color:${K.warn}">↓ ${sleepDev}%</b></div>
+      <div class="row"><span>Recovery</span><span class="mono">${MISSION.health.recovery.weekStart} → ${MISSION.health.recovery.current}</span><b class="mono" style="color:${K.warn}">↓ ${derived.recoveryDecline}% this week</b></div>
+      <div class="row"><span>Reaction time</span><span class="mono">${MISSION.health.reaction.preflightMs} → ${MISSION.health.reaction.currentMs} ms</span><b class="mono" style="color:${K.warn}">+${derived.reactionDev}%</b></div>
+      <p class="disclaimer">Pre-flight sleep and recovery values are simulated reference points.</p>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <div class="row" style="border:0"><h3>Sleep, 7 days</h3><span class="mono mu" style="font-size:12px">${SLEEP_7D[0]}h → ${SLEEP_7D[6]}h</span></div>
+        ${spark(SLEEP_7D, K.cy, 5, 8)}
+      </div>
+      <div class="card">
+        <div class="row" style="border:0"><h3>Recovery, 7 days</h3><span class="mono mu" style="font-size:12px">${RECOVERY_7D[0]} → ${RECOVERY_7D[6]}</span></div>
+        ${spark(RECOVERY_7D, K.warn, 60, 85)}
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Incidents on Record</h2>
+      ${incidents().slice().reverse().map(i => `<div class="row"><span><b class="mono">#0${i.id}</b> ${i.type}</span><span class="mu">${i.loc} · ${i.sev}</span></div>`).join('')}
+      <p class="disclaimer">Used for trend comparison only. Clinical interpretation is made by a physician.</p>
+    </div>
+  `; },
+
+  womens: () => {
+    if (!cur().wh) return `<h1>Not available</h1>`;
+    const syms = whSyms();
+    return `
+    <h1>Private Women's Health</h1>
+    <div class="card" style="border-left:3px solid var(--cy)">
+      <div class="lbl" style="color:var(--cy)">PRIVATE RECORD — VISIBLE ONLY TO YOU</div>
+      <p class="mu" style="font-size:12px">Not shown on the Crew dashboard. Shared with medical review only if you choose.</p>
+      <p class="mu" style="font-size:12px; margin-top:4px">Prototype note: privacy and access are simulated. Nothing here is protected or stored.</p>
+      <div class="row" style="border:0; margin-top:8px"><span>Share summary with physician review</span>
+        <button class="btn" onclick="S.whShare=!S.whShare;render()">${S.whShare ? 'SHARING ON' : 'SHARING OFF'}</button>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <h2>Cycle</h2>
+        <p class="mu" style="font-size:12px">Cycle day 18 of 29 (estimated)</p>
+        <div style="position:relative; display:flex; height:10px; border-radius:5px; overflow:hidden; margin-top:14px">
+          <div style="flex:5; background:${K.crit}"></div>
+          <div style="flex:8; background:${K.cy}"></div>
+          <div style="flex:3; background:${K.warn}"></div>
+          <div style="flex:13; background:${K.info}"></div>
+          <div style="position:absolute; left:62%; top:-4px; bottom:-4px; width:2px; background:var(--tx)"></div>
+        </div>
+        <div class="mu mono" style="font-size:12px; display:flex; justify-content:space-between; margin-top:6px"><span>Menstrual</span><span>Follicular</span><span>Ovulatory</span><span>Luteal</span></div>
+        <p style="margin-top:12px">Phase: <b>Luteal (estimated)</b></p>
+      </div>
+      <div class="card">
+        <h2>Symptoms & Pain</h2>
+        <p style="margin:6px 0">Pain today: <b>3 / 10</b></p>
+        <div class="chips" style="margin:10px 0">
+          ${WH_SYMPTOMS.map(x => `<div class="chip ${syms.includes(x) ? 'on' : ''}" style="--c:${K.warn}; cursor:pointer" onclick="togSym('${x}')">${x}</div>`).join('')}
+        </div>
+        <p class="mu" style="font-size:12px">Tap to log today's symptoms. Visible only in your private record.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Relevant Observations</h2>
+      <p>Resting HR is 11% above baseline. Cycle phase is recorded as context for review, not as a cause.</p>
+      <p>Sleep has been below baseline for several days.</p>
+      <p class="disclaimer">Personal tracking only. Not a diagnosis.</p>
+    </div>
+
+    <div class="card">
+      <h2>Private Notes</h2>
+      <textarea id="wh-note" class="inp" aria-label="Private notes" rows="3" placeholder="Only you can see these notes."></textarea>
+      <div class="btns"><button class="btn" onclick="saveNote()">SAVE NOTE</button></div>
+      <p class="mu" style="font-size:12px; margin-top:8px">${S.whNote ? 'Saved note: ' + S.whNote : 'No notes saved yet.'}</p>
+    </div>
+  `; },
+
+  emergency: () => `
+    <h1>Emergency Response</h1>
+    <div class="card">
+      <div class="chips">
+        <div class="chip ${S.em>=0 ? 'on' : ''}" style="--c:${K.ok}">Normal</div>
+        <div class="chip ${S.em>=3 ? 'on' : ''}" style="--c:${K.warn}">Anomaly</div>
+        <div class="chip ${S.em>=4 ? 'on' : ''}" style="--c:${K.crit}">Critical</div>
+        <div class="chip ${S.em>=5 ? 'on' : ''}" style="--c:${K.crit}">Crew Alert</div>
+        <div class="chip ${S.em>=6 ? 'on' : ''}" style="--c:${K.info}">Response Active</div>
+      </div>
+    </div>
+    
+    ${S.nav === 1 ? `
+      <div class="nav-map anim-fade">
+        <h3 style="margin-bottom:10px">SPACECRAFT NAVIGATION</h3>
+        <svg viewBox="0 0 600 200" style="width:100%; max-width:500px; background:rgba(0,0,0,0.5); border-radius:8px">
+          <rect x="50" y="50" width="120" height="100" fill="none" stroke="var(--mu)" stroke-width="2"/>
+          <text x="110" y="105" fill="var(--mu)" text-anchor="middle" font-size="14">HAB MODULE</text>
+          
+          <rect x="220" y="50" width="120" height="100" fill="none" stroke="var(--mu)" stroke-width="2"/>
+          <text x="280" y="105" fill="var(--mu)" text-anchor="middle" font-size="14">LAB MODULE</text>
+          
+          <rect x="390" y="70" width="60" height="60" fill="none" stroke="var(--mu)" stroke-width="2"/>
+          <text x="420" y="105" fill="var(--mu)" text-anchor="middle" font-size="13">AIRLOCK</text>
+          
+          <circle cx="530" cy="100" r="40" fill="none" stroke="var(--mu)" stroke-width="2" stroke-dasharray="4"/>
+          <text x="530" y="145" fill="var(--mu)" text-anchor="middle" font-size="13">${EVA_LOC.toUpperCase()}</text>
+          
+          <!-- Animated Route -->
+          <path d="M 280 100 L 420 100 L 530 100" fill="none" stroke="var(--cy)" stroke-width="3" stroke-dasharray="6 4" opacity="0.8">
+            ${REDUCED ? '' : `<animate attributeName="stroke-dashoffset" from="20" to="0" dur="0.8s" repeatCount="indefinite" />`}
+          </path>
+          
+          <!-- Maya Beacon & Radar Pulse -->
+          <circle cx="530" cy="100" r="8" fill="var(--r)">
+            ${REDUCED ? '' : `<animate attributeName="opacity" values="1;0.4;1" dur="1s" repeatCount="indefinite" />`}
+          </circle>
+          <circle cx="530" cy="100" r="10" fill="none" stroke="var(--r)" stroke-width="2">
+            ${REDUCED ? '' : `<animate attributeName="r" values="10; 45" dur="1.5s" repeatCount="indefinite" />`}
+            ${REDUCED ? '' : `<animate attributeName="opacity" values="1; 0" dur="1.5s" repeatCount="indefinite" />`}
+          </circle>
+          <text x="530" y="80" fill="var(--r)" text-anchor="middle" font-size="13" font-weight="bold">MAYA</text>
+          
+          <!-- Daniel Responder -->
+          <circle cx="${REDUCED ? 510 : 280}" cy="100" r="6" fill="var(--cy)">
+            ${REDUCED ? '' : `<animate attributeName="cx" values="280;420;510" dur="4s" fill="freeze" />`}
+          </circle>
+          <circle cx="${REDUCED ? 510 : 280}" cy="100" r="12" fill="none" stroke="var(--cy)" stroke-width="1.5" opacity="0.5">
+            ${REDUCED ? '' : `<animate attributeName="cx" values="280;420;510" dur="4s" fill="freeze" />`}
+            ${REDUCED ? '' : `<animate attributeName="opacity" values="0.8;0.2;0.8" dur="1s" repeatCount="indefinite" />`}
+          </circle>
+          <text x="${REDUCED ? 510 : 280}" y="80" fill="var(--cy)" text-anchor="middle" font-size="13">
+            DANIEL
+            ${REDUCED ? '' : `<animate attributeName="x" values="280;420;510" dur="4s" fill="freeze" />`}
+          </text>
+        </svg>
+        <div style="margin-top:14px; color:var(--cy)">Distance: ${RESP_DIST} m &nbsp;|&nbsp; ETA: ~20 s</div>
+        <button class="btn" style="margin-top:10px" onclick="S.nav=0;render()">CLOSE NAVIGATION</button>
+      </div>
+    ` : ''}
+
+    ${S.em >= 3 ? `
+      <div class="card anim-slide crit-anim" style="--c:var(--r); border-width:2px">
+        <div class="lbl" style="color:var(--r); margin-bottom:8px">⚠ CRITICAL EMERGENCY — RESPONSE MODE</div>
+        <div class="mono" style="font-size:13px; line-height:1.9">
+          ASTRONAUT: MAYA CHEN<br>
+          STATUS: ${scen()==='A' ? 'UNRESPONSIVE' : PROCS[scen()].title.toUpperCase()}<br>
+          LOCATION: ${EVA_LOC.toUpperCase()}<br>
+          RESPONDER: DANIEL KIM — ${S.proto ? 'RESPONDING' : 'EN ROUTE'}<br>
+          TIME SINCE DETECTION: ${elapsedStr()}
+        </div>
+      </div>` : ''}
+    ${S.em >= 3 ? `
+      <div class="card st anim-slide ${S.em>=5 && !S.ack ? 'crit-anim' : ''}" style="--c:${K.crit}">
+        <div class="row" style="border:0">
+          <h2 style="color:var(--r)">${S.em >= 5 ? '🚨 CREW ASSISTANCE REQUIRED' : 'CRITICAL ANOMALY'}</h2>
+          ${pill('crit', 'MAYA CHEN')}
+        </div>
+        <p>Possible Incapacitation detected. Loss of expected activity.</p>
+        
+        <div class="facts">
+          <div class="fact">Location<br><b>${EVA_LOC}</b></div>
+          <div class="fact">Last Move<br><b>1m 12s ago</b></div>
+          <div class="fact">Heart Rate<br><b>${MAYA_CRIT_HR} BPM</b></div>
+          <div class="fact">Comm<br><b style="color:var(--r)">No Response</b></div>
+        </div>
+        
+        <div class="btns">
+          ${S.em >= 5 && !S.ack ? `<button class="btn r" onclick="ack()">ACKNOWLEDGE ALERT</button>` : ''}
+          ${S.em >= 6 && !S.proto ? `<button class="btn r" onclick="S.proto=1;render()">START RESPONSE PROTOCOL</button>` : ''}
+          ${S.em >= 6 ? `<button class="btn" onclick="S.nav=1;render()">NAVIGATE TO MAYA</button>` : ''}
+          <button class="btn" onclick="S.evDetail=!S.evDetail;render()">VIEW EVENT DETAIL</button>
+          <button class="btn" onclick="go('health')">VIEW MAYA STATUS</button>
+        </div>
+        
+        ${S.evDetail ? `
+        <div class="insight-ev anim-fade mono" style="margin-top: 16px; border-color: var(--r); background: rgba(255,77,94,0.05)">
+          <div class="insight-ev-title" style="color:var(--r); border-bottom-color: rgba(255,77,94,0.2)">[SYS.ALERT] EVENT 0143 — POSSIBLE INCAPACITATION</div>
+          <div class="insight-ev-content" style="font-size:12px">
+            <div class="row" style="border-bottom: 1px solid rgba(255,255,255,0.05)"><span style="color:var(--mu)">> Observed Anomaly:</span> <b style="color:var(--tx)">HR ↑, Movement ↓, Comm Lost</b></div>
+            <div class="row" style="border-bottom: 1px solid rgba(255,255,255,0.05)"><span style="color:var(--mu)">> Mission Context:</span> <b style="color:var(--tx)">EVA active, ${EVA_LOC}</b></div>
+            <div class="row" style="border-bottom: 1px solid rgba(255,255,255,0.05)"><span style="color:var(--mu)">> Environmental Check:</span> <b style="color:var(--g)">Nominal in immediate zone</b></div>
+            <div class="row" style="border-bottom: 1px solid rgba(255,255,255,0.05)"><span style="color:var(--mu)">> Available Responders:</span> <b style="color:var(--cy)">Daniel (Distance: ${RESP_DIST}m)</b></div>
+            <div class="row" style="border-bottom: 1px solid rgba(255,255,255,0.05)"><span style="color:var(--mu)">> Automated Action:</span> <b style="color:var(--r)">CREW ASSISTANCE ALERT TRIGGERED</b></div>
+            <div class="row" style="margin-top:10px; border:0"><span style="color:var(--mu)">> Protocol Status:</span> <b style="color:var(--cy)">${S.ack ? '[ACKNOWLEDGED] Daniel responding' : '[AWAITING] Awaiting acknowledgment...'}</b></div>
+          </div>
+        </div>
+        ` : ''}
+        
+        <p class="disclaimer" style="margin-top:12px">Critical physiological anomaly and loss of expected activity detected. Human assistance may be required. TRITON is alerting the crew — it is not diagnosing Maya. Response steps shown are generic placeholders pending clinical review.</p>
+      </div>
+    ` : `
+      <div class="card" style="text-align:center; padding:40px 20px">
+        <div class="lbl" style="margin-bottom:12px">No active emergencies</div>
+        <p class="mu" style="margin-bottom:20px">Use the simulation to walk through the full emergency response scenario.</p>
+        <button class="btn r" style="padding:12px 24px; font-size:13px" onclick="startSim()">▶ RUN MISSION SIMULATION</button>
+      </div>
+    `}
+    
+    ${S.em >= 3 ? `${escStrip()}${scenBar()}${hierarchy()}${procPanel()}` : ''}
+    ${S.em >= 1 ? `
+    <div class="g2">
+      <div class="card">
+        <h2>Emergency Timeline</h2>
+        ${tsTimeline()}
+      </div>
+      
+      ${S.em >= 5 ? `
+      <div class="card">
+        <h2>Crew Response</h2>
+        <div class="sub">
+          <div><b>Alex Rahman</b></div> <div class="mu">Monitoring</div>
+        </div>
+        <div class="sub">
+          <div><b>Sarah Collins</b></div> <div class="mu">Monitoring</div>
+        </div>
+        <div class="sub st" style="--c:${K.info}; background: rgba(76,201,240,0.1)">
+          <div><b>Daniel Kim</b><br><small class="lbl" style="color:var(--cy)">NEAREST RESPONDER (${RESP_DIST}m)</small></div> 
+          <div>${S.proto ? `<span style="color:var(--g)">RESPONDING</span>` : `<span style="color:var(--cy)">AVAILABLE</span>`}</div>
+        </div>
+        ${S.proto ? `
+          <div class="al anim-fade" style="--c:${K.ok}; margin-top:10px">
+            <i></i><b>PROTOCOL ACTIVE</b>
+          </div>
+        ` : ''}
+      </div>
+      ` : '<div></div>'}
+    </div>
+    ` : ''}
+  `,
+  
+  environment: () => `
+    <h1>Environment Intelligence</h1>
+    
+    ${sc() >= 6 ? `<div class="card" style="--c:${K.warn}">
+      ${alrt('warn', 'ELEVATED CO₂ DETECTED (0.8%)')}
+      <p class="mu">Requires human review: verify air-quality sensors and check ventilation system in shared zones.</p>
+    </div>` : `<div class="card" style="--c:${K.ok}">${alrt('ok', 'Environment nominal. All readings within limits.')}</div>`}
+    ${S.fail.co2 ? `<div class="card st" style="--c:${K.mon}">${alrt('mon', 'DATA STALE — CO₂ last update 03:42 ago. Displayed value may not reflect current conditions.')}</div>` : ''}
+    
+    <div class="g6">
+      <div class="card ${sc() >= 6 ? 'st' : ''}" style="--c:${sc() >= 6 ? K.warn : K.ok}">${mt(['CO₂', sc() >= 6 ? '0.8' : '0.6', '%', sc() >= 6 ? 'warn' : 'ok'])}${S.fail.co2 ? '<div class="stt" style="--c:var(--y)">STALE · 03:42 ago</div>' : ''}</div>
+      <div class="card">${mt(['Temp','22.4','°C','ok'])}</div>
+      <div class="card">${mt(['Humidity','45','%','ok'])}</div>
+      <div class="card">${mt(['Pressure','101.3','kPa','ok'])}</div>
+      <div class="card">${mt(['Radiation','0.2','mSv','ok'])}</div>
+      <div class="card">${mt(['Noise','62','dB','ok'])}</div>
+    </div>
+
+    <div class="card">
+      <div class="lbl">Radiation — cumulative context</div>
+      <div class="facts">
+        <div class="fact">Current rate<br><b>0.2 mSv</b></div>
+        <div class="fact">Mission cumulative<br><b>${(MISSION.mission.day * 0.62).toFixed(1)} mSv</b></div>
+        <div class="fact">7-day trend<br><b style="color:${K.mon}">↑ 4.2%</b></div>
+      </div>
+      <p class="mu" style="font-size:12px">Simulated values for illustration. Not a dose-limit assessment.</p>
+    </div>
+    
+    <div class="g2">
+      ${cc('CO₂ Trends (Last 12h)', sc() >= 6 ? CO2_DATA : CO2_DATA.map(() => 0.6), 'var(--o)')}
+      ${cc('Temperature Trends (°C)', TEMP_DATA, 'var(--g)')}
+    </div>
+    
+    <div class="card ${S.d === 4 ? 'st pulse' : ''}" style="--c:${K.mon}">
+      <div class="row" style="border:0">
+        <h2>Shared Event Detection</h2>
+        ${pill('mon', 'POSSIBLE CORRELATION')}
+      </div>
+      <p class="mu">Multiple crew members reported similar symptoms during the same environmental event.</p>
+      <button class="btn" style="margin-top: 12px" onclick="S.corr=!S.corr;render()">${S.corr ? 'HIDE CORRELATION' : 'VIEW CORRELATION EVIDENCE'}</button>
+      
+      ${S.corr ? `
+        <div class="insight-ev anim-fade" style="margin-top:10px">
+          <div class="insight-ev-title"><i style="color:var(--cy)">✦</i> Analysis Evidence</div>
+          <div class="insight-ev-content">
+            ${INSIGHTS[2].evidence.map(e => `<div>${e}</div>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+    </div>
+    
+    <div class="card">
+      <h2>Environmental Events</h2>
+      ${tl([
+        ['10:00', 'Nominal environmental sweep completed', 'ok'],
+        ['12:40', 'CO₂ rise detected (0.6% → 0.8%)', 'warn'],
+        ['13:00', 'Correlation flagged with crew symptoms', 'info']
+      ])}
+    </div>
+    <p class="disclaimer">Wellness indicators for situational awareness — not medically diagnostic.</p>
+  `
+};
+
+// === APP SHELL ===
+const hero = () => `
+  <div class="hero anim-fade">
+    <div class="orb">
+      <svg viewBox="0 0 400 400" width="100%" height="100%">
+        <circle cx="200" cy="200" r="62" fill="rgba(76,201,240,0.07)" stroke="var(--cy)" stroke-opacity=".35" stroke-width="1"/>
+        <ellipse cx="200" cy="200" rx="174" ry="72" fill="none" stroke="rgba(130,170,230,.3)" stroke-width="1" transform="rotate(-22 200 200)"/>
+        <ellipse cx="200" cy="200" rx="148" ry="55" fill="none" stroke="rgba(76,201,240,.12)" stroke-width="1" transform="rotate(12 200 200)"/>
+        <circle cx="200" cy="200" r="122" fill="none" stroke="rgba(130,170,230,.18)" stroke-width="1" stroke-dasharray="2 7"/>
+        <circle cx="200" cy="200" r="170" fill="none" stroke="rgba(76,201,240,.08)" stroke-width="1" stroke-dasharray="1 10"/>
+        <g transform="rotate(-22 200 200)"><circle cx="374" cy="200" r="5" fill="var(--cy)" opacity=".9"/></g>
+        <g transform="rotate(12 200 200)"><circle cx="348" cy="200" r="3.5" fill="rgba(130,170,230,.7)"/></g>
+        <circle cx="200" cy="78" r="2.5" fill="rgba(255,255,255,0.4)"/>
+        <circle cx="322" cy="138" r="1.5" fill="rgba(255,255,255,0.3)"/>
+      </svg>
+    </div>
+    <div style="position:relative; z-index:10; max-width:640px">
+      <div class="pill" style="--c:${K.info}; margin-bottom:24px"><i></i>MISSION HEALTH INTELLIGENCE</div>
+      <div class="hb">TRITON</div>
+      <p style="font-size:18px; font-weight:300; letter-spacing:0.04em; margin:0 0 16px; color:var(--tx); opacity:0.9">From health monitoring to mission-aware action.</p>
+      <p class="mu" style="font-size:15px; margin-bottom:44px; line-height:1.7; max-width:520px; margin-left:auto; margin-right:auto">
+        TRITON combines astronaut health, crew status, spacecraft environment, and mission context to help crews understand emerging situations and coordinate a response when assistance is needed.
+      </p>
+      <div class="btns" style="justify-content:center; gap:16px; margin-top:0">
+        <button class="btn" style="padding:12px 28px; font-size:13px; letter-spacing:.1em" onclick="enter()">ENTER MISSION CONTROL</button>
+        <button class="btn r" style="padding:12px 28px; font-size:13px; letter-spacing:.1em; background:rgba(255,159,67,.15); border-color:var(--o); color:var(--o)" onclick="startSim()">▶ RUN MISSION SIMULATION</button>
+      </div>
+      <div style="margin-top:20px; display:flex; gap:24px; justify-content:center; flex-wrap:wrap">
+        ${[['Health Monitoring','♡'],['AI Analysis','✦'],['Crew Awareness','⚉'],['Emergency Response','⚠']].map(([l,i])=>`<span style="font:600 12px ui-monospace,monospace;letter-spacing:.1em;color:var(--mu);display:flex;gap:6px;align-items:center"><span style="color:var(--cy)">${i}</span>${l}</span>`).join('')}
+      </div>
+      <div class="card" style="text-align:left; margin:36px auto 0; max-width:520px">
+        <div class="lbl" style="color:var(--cy); margin-bottom:6px">How to use this demo</div>
+        <ol style="margin:0 0 0 18px; font-size:13px; line-height:1.8">
+          <li>Click <b>Enter Mission Control</b>, or <b>Run Mission Simulation</b> for a guided 14-step walkthrough.</li>
+          <li>Visit in order: Mission Overview → My Health → AI Insights → Mission → Environment → Crew → Emergency.</li>
+          <li>Then review: Mental &amp; Behavioral, Incidents, Medical Review, Behavioral Review, Health History.</li>
+          <li>Use <b>+ 10 MIN</b> to advance the clock and <b>Reset Demo</b> to start over.</li>
+        </ol>
+      </div>
+      <p class="disclaimer" style="margin-top:32px">Prototype with simulated data. Not connected to real systems. · Not a diagnostic tool</p>
+    </div>
+  </div>
+`;
+
+const demoBar = () => {
+  if (S.d < 0) return '';
+  const step = DEMO_STEPS[S.d], N = DEMO_STEPS.length;
+  return `
+    <div class="demo anim-fade">
+      <div style="height:2px; background:var(--ln); border-radius:1px; width:100%">
+        <div style="height:100%; width:${(S.d+1)/N*100}%; background:var(--cy); border-radius:1px; transition:width .3s"></div>
+      </div>
+      <div class="demo-content">
+        <div>
+          <div class="lbl" style="color:var(--cy); margin-bottom:4px">TRITON MISSION SIMULATION — Step ${S.d + 1}/${N} · Mission time ${step.t} · Events ${visibleEvents().length} · Active alerts ${activeAlerts().length}</div>
+          <b>${step.title}</b>
+          <p class="mu" style="font-size:13px; max-width:600px">${step.desc}</p>
+        </div>
+        <div class="btns">
+          ${S.d < N - 1 ? `<button class="btn" style="background:var(--cy); color:#000" onclick="nextD()">NEXT ▶</button>` : `<button class="btn" style="background:var(--g); color:#000" onclick="stopD()">FINISH</button>`}
+          <button class="btn r" onclick="stopD()">EXIT</button>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+const shell = () => `
+  <div class="shell anim-fade">
+    <nav>
+      <div class="brand" onclick="S.v='hero'; render()" style="padding:4px 0 20px; border-bottom:1px solid var(--ln); margin-bottom:8px">
+        <div style="font-size:20px; letter-spacing:.28em; font-weight:300; color:var(--tx)">TRITON</div>
+        <div class="lbl" style="margin-top:3px; letter-spacing:.12em">Mission Health Intelligence</div>
+      </div>
+      <div class="sys">
+        ${navItems().map(([id, n, i]) => `
+          <button class="ni ${S.s === id ? 'on' : ''}" onclick="go('${id}')">
+            <span style="width:16px;text-align:center;opacity:0.7">${i}</span> ${n}
+            ${id==='emergency' && S.em>=3 ? '<div class="alertdot"></div>' : ''}
+          </button>
+        `).join('')}
+      </div>
+      <div class="navfoot" style="margin-top:auto; padding-top:24px; border-top:1px solid var(--ln); margin-top:24px">
+        <div style="margin-bottom:12px"><div class="lbl" style="margin-bottom:4px" title="Demo only: switches the view, does not enforce access.">Viewing as</div><select class="inp" aria-label="Viewing as (demo only)" title="Demo only: switches the view, does not enforce access." onchange="setProfile(this.value)">${PROFILES.map(p => `<option value="${p.id}" ${p.id===cur().id?'selected':''}>${p.name}</option>`).join('')}</select><div class="lbl" style="margin:8px 0 4px">Role view</div><select class="inp" aria-label="Role view (demo only)" title="Demo only: shows what each role would see. Not real permissions." onchange="setRole(this.value)">${Object.entries(ROLES).map(([k, r]) => `<option value="${k}" ${k===role()?'selected':''}>${r.label}</option>`).join('')}</select><div class="mu" style="font-size:12px; margin-top:4px">Demo only: does not enforce access.</div></div>
+        <div class="pill" style="--c:var(--g); margin-bottom:8px"><i></i>TRITON SYSTEMS ONLINE</div>
+        <div class="lbl">Mission Day ${MISSION.mission.day}</div>
+        <div class="mu" style="font-size:12px; margin-top:2px">ISS / Deep Space Sim</div>
+      </div>
+    </nav>
+    <main>
+      <div class="demo-banner" role="note"><b>PROTOTYPE</b><span>Prototype with simulated data. Not connected to real systems.</span></div>
+      <div class="top">
+        <div class="top-left">
+          <span class="lbl" style="color:var(--cy)">◷</span>
+          <span class="lbl">${getClock()} MET</span>
+          <span class="pill" style="--c:var(--mu); font-size:12px">DAY ${MISSION.mission.day}</span>
+        </div>
+        <div class="top-right">
+          ${S.em < 3 ? `<span class="pill" style="--c:${sc() >= 7 ? 'var(--y)' : 'var(--g)'}"><i></i>${sc() >= 7 ? '3 NOM / 1 MONITOR' : '4 NOMINAL'}</span>` : `<span class="pill" style="--c:var(--r)"><i></i>3 NOM / 1 CRITICAL</span>`}
+          <button class="pill" style="--c:${S.fail.comms ? 'var(--o)' : 'var(--g)'}; background:none; cursor:pointer" onclick="toggleGL()" aria-expanded="${!!S.gl}" title="Ground link status"><i></i>${S.fail.comms ? 'GROUND LINK DELAYED' : 'GROUND LINK NOMINAL'}</button>
+          <button class="btn" style="padding:6px 12px; font-size:12px" onclick="toggleAC()">🔔 ALERT CENTER · ${activeAlerts().length}${unackCount() ? ` (${unackCount()} NEW)` : ''}</button>
+          <button class="btn" style="padding:6px 12px; font-size:12px" onclick="resetDemo()" title="Restore the starting state">↺ RESET DEMO</button>
+          ${S.d < 0 ? `<button class="btn" style="padding:6px 12px; font-size:12px" onclick="adv()">+ 10 MIN</button>
+          <button class="btn r" style="padding:6px 14px; font-size:12px; background:rgba(255,159,67,.12); border-color:var(--o); color:var(--o)" onclick="startSim()">▶ RUN SIMULATION</button>` : ''}
+        </div>
+      </div>
+      ${S.gl ? groundPanel() : ''}
+      ${SC[S.s]()}
+    </main>
+    ${S.ac ? alertCenter() : ''}
+    ${demoBar()}
+  </div>
+`;
+
+// === ACTIONS ===
+let lastRenderKey = '';
+const FOCUSABLE = 'button, input, select, textarea, [tabindex="0"]';
+function render() {
+  const app = document.getElementById('app');
+  // Keep typed form values in state so a re-render never wipes them
+  app.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => { S.form[el.id] = el.value; });
+  // Remember keyboard focus so it survives the innerHTML rebuild
+  const key = S.v + ':' + S.s;
+  const act = document.activeElement;
+  const fIdx = app.contains(act) ? [...app.querySelectorAll(FOCUSABLE)].indexOf(act) : -1;
+  let sel = null;
+  try { if (act && act.selectionStart != null) sel = [act.selectionStart, act.selectionEnd]; } catch (e) {}
+
+  app.innerHTML = S.v === 'hero' ? hero() : shell();
+
+  app.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => { if (el.id in S.form) el.value = S.form[el.id]; });
+  // Make clickable non-button elements keyboard reachable
+  app.querySelectorAll('[onclick]:not(button)').forEach(el => { el.setAttribute('role', 'button'); el.setAttribute('tabindex', '0'); });
+  if (fIdx >= 0 && key === lastRenderKey) {
+    const el = app.querySelectorAll(FOCUSABLE)[fIdx];
+    if (el) {
+      el.focus({ preventScroll: true });
+      try { if (sel && el.setSelectionRange) el.setSelectionRange(sel[0], sel[1]); } catch (e) {}
+    }
+  }
+  lastRenderKey = key;
+  syncHash();
+}
+
+// Deep links: the current page is kept in the URL hash so refresh and bookmarks return to it
+function syncHash() {
+  const h = S.v === 'hero' ? '' : S.s;
+  if (location.hash.slice(1) === h) return;
+  try { history.replaceState(null, '', h ? '#' + h : location.pathname + location.search); } catch (e) {}
+}
+function readHash() {
+  const h = location.hash.slice(1);
+  if (SC[h] && !(h === 'womens' && !cur().wh)) { S.v = 'app'; S.s = h; }
+}
+
+function resetDemo() {
+  if (!confirm('Reset the demo to its starting state? Simulation progress, logged incidents and entered text will be cleared.')) return;
+  Object.keys(S).forEach(k => delete S[k]);
+  Object.assign(S, initialState());
+  render();
+}
+
+function go(s) { S.s = s; render(); }
+function enter() { S.v = 'app'; S.s = 'overview'; render(); }
+
+function tog(i) {
+  S.open[i] = !S.open[i];
+  render();
+}
+
+function adv() {
+  S.timeOffset += 10;
+  render();
+}
+
+function ack() {
+  S.ack = 1;
+  render();
+}
+
+// === DEMO / SIMULATION LOGIC ===
+function startSim() {
+  if ((S.d >= 0 || S.em > 0) && !confirm('Restart the simulation from step 1? Current simulation progress will be reset.')) return;
+  S.v = 'app';
+  S.d = 0;
+  S.open = {};
+  S.corr = 0;
+  S.evDetail = 0;
+  S.steps = null;
+  S.timeOffset = 0; // reset clock
+  applyD();
+}
+
+function nextD() {
+  if (S.d < DEMO_STEPS.length - 1) {
+    S.d++;
+    applyD();
+  } else {
+    stopD();
+  }
+}
+
+function stopD() {
+  S.d = -1;
+  render();
+}
+
+function applyD() {
+  const step = DEMO_STEPS[S.d];
+  S.s = step.page;
+  S.em = step.em;
+  S.proto = step.proto;
+  S.nav = step.nav;
+  S.ack = S.d >= 12 ? 1 : 0;
+  S.open[0] = S.d === 4;
+  if (S.d === 7) S.corr = 1;
+  else if (S.d < 7) S.corr = 0;
+  S.steps = null;
+  render();
+}
+
+// === ALERT CENTER / ACTIONS / REVIEW WORKFLOW / ROLES ===
+function toggleAC() { S.ac = !S.ac; S.evSel = null; render(); }
+function setACF(f) { S.acF = f; render(); }
+function ackAlert(id) { S.acked[id] = true; if (id === 'E-0143') S.ack = 1; render(); }
+function selEvent(id) { S.evSel = S.evSel === id ? null : id; render(); }
+function openLink(page) { S.ac = false; S.evSel = null; go(page); }
+function setAct(st) { S.act = st; render(); }
+function advReview(kind) {
+  const n = kind === 'med' ? MED_FLOW.length : BEH_FLOW.length;
+  const note = document.getElementById('rv-note-' + kind);
+  if (note && note.value.trim()) S.rvNote[kind] = note.value.trim();
+  S.rv[kind] = Math.min(n - 1, (S.rv[kind] || 0) + 1);
+  render();
+}
+function toggleFail(k) { S.fail[k] = !S.fail[k]; render(); }
+function toggleGL() { S.gl = !S.gl; render(); }
+
+// === INIT ===
+document.addEventListener('keydown', e => {
+  const t = e.target;
+  if ((e.key === 'Enter' || e.key === ' ') && t.matches && t.matches('[role="button"][onclick]')) { e.preventDefault(); t.click(); }
+});
+document.addEventListener('input', e => {
+  if (e.target && e.target.id) S.form[e.target.id] = e.target.value;
+});
+window.addEventListener('hashchange', () => { readHash(); render(); });
+render();
+</script>
+</body>
+</html>
